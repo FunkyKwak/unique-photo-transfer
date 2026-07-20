@@ -1,3 +1,6 @@
+import subprocess
+from pathlib import Path
+
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -241,7 +244,18 @@ class ResultsDialog(QDialog):
 
 
         if path:
+            open_and_select_file(path)
 
-            QDesktopServices.openUrl(
-                QUrl.fromLocalFile(path)
-            )
+
+
+def open_and_select_file(path):
+
+    path = str(Path(path).resolve())
+
+    subprocess.Popen(
+        [
+            "explorer.exe",
+            "/select,",
+            path
+        ]
+    )

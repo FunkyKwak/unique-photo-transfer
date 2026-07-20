@@ -181,6 +181,7 @@ class Database:
         return cursor.fetchall()
 
 
-
+    def open(self):
+        self.connection = sqlite3.connect(self.filename)
     def close(self):
         self.connection.close()

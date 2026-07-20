@@ -94,7 +94,9 @@ class MainWindow(QWidget):
         layout.addLayout(row_destination)
         layout.addLayout(row_copyDestination)
         layout.addWidget(self.cbx_keep_structure)
+
         layout.addWidget(self.start_button)
+
         layout.addWidget(self.progressIndexation)
         layout.addWidget(self.progressIndexationLabel)
         layout.addWidget(self.progress)
@@ -102,6 +104,7 @@ class MainWindow(QWidget):
         layout.addWidget(self.progressCopyLabel)
         layout.addWidget(self.status)
 
+        layout.addWidget(self.btn_results)
 
         self.setLayout(layout)
 
@@ -216,6 +219,7 @@ class MainWindow(QWidget):
 
 
     def show_results(self):
+        self.database.open()
         dialog = ResultsDialog(
             self.database,
             None,
