@@ -5,12 +5,13 @@ from PySide6.QtCore import QObject, Signal
 
 from copier import copy_file
 from database import Database, ResultStatus
+from progress_event import ProgressEvent, ProgressPhase
 
 
 
 class ScannerWorker(QObject):
 
-    filesDestScanned = Signal(int)
+    filesDestScanned = Signal(ProgressEvent)
     finishedIndexation = Signal()
 
     filesSourceScanned = Signal(int)
@@ -135,9 +136,9 @@ class ScannerWorker(QObject):
 
         index = set()
 
-        nfilesDestIndexed = 0
-
         for folder in folders:
+
+            nfilesDestIndexed = 0
             for root, _, filenames in os.walk(folder):
 
                 for filename in filenames:
@@ -157,7 +158,13 @@ class ScannerWorker(QObject):
                         )
                     )
                     nfilesDestIndexed += 1
-                    self.filesDestScanned.emit(nfilesDestIndexed)
+                    self.filesDestScanned.emit(
+                        ProgressEvent(
+                            phase=ProgressPhase.INDEX,
+                            root_folder=folder,
+                            current=nfilesDestIndexed
+                        )
+                    )
 
                     #time.sleep(1) # Simulate a long-running operation
 

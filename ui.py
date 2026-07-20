@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from PySide6.QtCore import QThread, Signal
+from progress_event import ProgressEvent
 from results_dialog import ResultsDialog
 from database import Database
 import config
@@ -83,6 +84,7 @@ class MainWindow(QWidget):
         self.progressIndexation = QProgressBar()
         self.progressIndexationLabel = QLabel()
         self.progressIndexationLabel.hide()
+        self.destinationProgressCounters = list()
 
         self.progress = QProgressBar()
 
@@ -200,9 +202,23 @@ class MainWindow(QWidget):
         # self.worker.run() # si besoin de debugger
         self.thread.start()
 
-    def update_indexation(self, count):
-        self.progressIndexation.setValue(count)
-        self.progressIndexationLabel.setText(f"Fichiers indexés : {count:,}")
+    def update_indexation(self, event: ProgressEvent):
+
+        found = False
+        progressIndexationTotal = 0
+        for progressEvent in self.destinationProgressCounters:
+            if (progressEvent.root_folder == event.root_folder and progressEvent.phase == event.phase):
+                progressEvent.current = event.current
+                found = True
+            progressIndexationTotal += progressEvent.current
+        self.progressIndexation.setValue(progressIndexationTotal)
+        if not found:
+            self.destinationProgressCounters.append(event)
+
+        self.progressIndexationLabel.setText("")
+        for progressEvent in self.destinationProgressCounters:
+            self.progressIndexationLabel.setText(f"{self.progressIndexationLabel.text()}Fichiers indexés dans le répertoire {progressEvent.root_folder}: {progressEvent.current:,}<br>")
+
     def update_copy(self, count):
         self.progressCopy.setValue(count)
         self.progressCopyLabel.setText(f"Fichiers copiés : {count:,}")
@@ -213,7 +229,8 @@ class MainWindow(QWidget):
             self.progressIndexation.setRange(0, self.progressIndexation.value())
         else:
             self.progressIndexation.setRange(0, 100)
-        self.progressIndexationLabel.hide()
+        if not self.destination2.text():
+            self.progressIndexationLabel.hide()
         self.progressCopy.setRange(0, 0)
 
     def done(self):
