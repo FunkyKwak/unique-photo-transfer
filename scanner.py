@@ -3,6 +3,7 @@ import time
 
 from PySide6.QtCore import QObject, Signal
 
+import config
 from copier import copy_file
 from database import Database, ResultStatus
 from progress_event import ProgressEvent, ProgressPhase
@@ -42,7 +43,7 @@ class ScannerWorker(QObject):
 
         self.message.emit("Indexation destination...")
 
-        existing = self.build_index([self.destination, self.destination2])
+        self.build_index([self.destination, self.destination2])
 
         self.finishedIndexation.emit()
 
@@ -76,7 +77,7 @@ class ScannerWorker(QObject):
                 int(stat.st_mtime)
             )
 
-            if key not in existing:
+            if key not in self.index:
 
                 relative = os.path.relpath(
                     filepath,
@@ -134,39 +135,43 @@ class ScannerWorker(QObject):
 
     def build_index(self, folders):
 
-        index = set()
+        self.index = set()
 
         for folder in folders:
+            self.currRootFolder = folder
+            self.nfilesDestIndexed = 0
+            self.scan(self.currRootFolder)
 
-            nfilesDestIndexed = 0
-            for root, _, filenames in os.walk(folder):
+        return self.index
+    
 
-                for filename in filenames:
+    def scan(self, folder):
+        with os.scandir(folder) as entries:
+            for entry in entries:
+                if entry.is_dir():
+                    if entry.name not in config.EXCLUDED_DIRECTORIES:
+                        self.scan(entry.path)
 
-                    filepath = os.path.join(
-                        root,
-                        filename
-                    )
+                elif entry.is_file():
+                    self.handle_file(entry)
+    
 
-                    stat = os.stat(filepath)
+    def handle_file(self, entry):
+        stat = entry.stat()
+        self.index.add(
+            (
+                entry.name,
+                stat.st_size,
+                int(stat.st_mtime)
+            )
+        )
+        self.nfilesDestIndexed += 1
+        self.filesDestScanned.emit(
+            ProgressEvent(
+                phase=ProgressPhase.INDEX,
+                root_folder=self.currRootFolder,
+                current=self.nfilesDestIndexed
+            )
+        )
 
-                    index.add(
-                        (
-                            filename,
-                            stat.st_size,
-                            int(stat.st_mtime)
-                        )
-                    )
-                    nfilesDestIndexed += 1
-                    self.filesDestScanned.emit(
-                        ProgressEvent(
-                            phase=ProgressPhase.INDEX,
-                            root_folder=folder,
-                            current=nfilesDestIndexed
-                        )
-                    )
-
-                    #time.sleep(1) # Simulate a long-running operation
-
-        return index
-        
+        #time.sleep(1) # Simulate a long-running operation
