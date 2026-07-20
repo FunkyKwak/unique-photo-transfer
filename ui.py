@@ -173,10 +173,11 @@ class MainWindow(QWidget):
             self.done
         )
 
+        # self.worker.run() # si besoin de debugger
         self.thread.start()
 
     def update_indexation(self, count):
-        self.progressIndexation.setValue(count+1)
+        self.progressIndexation.setValue(count)
         self.progressIndexationLabel.setText(f"Fichiers indexés : {count:,}")
     def update_copy(self, count):
         self.progressCopy.setValue(count)
