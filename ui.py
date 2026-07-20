@@ -20,8 +20,8 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Photo Sync")
-        self.resize(600, 300)
+        self.setWindowTitle("Unique Photo Transfer")
+        self.resize(700, 350)
 
         self.worker = None
         self.thread = None
@@ -38,24 +38,32 @@ class MainWindow(QWidget):
         self.source.setText(config.DEFAULT_SOURCE)
         self.destination = QLineEdit()
         self.destination.setText(config.DEFAULT_DESTINATION)
+        self.copyDestination = QLineEdit()
+        self.copyDestination.setText(config.DEFAULT_COPY_DESTINATION)
 
 
         btn_source = QPushButton("Choisir source")
         btn_dest = QPushButton("Choisir destination")
+        btn_copyDest = QPushButton("Choisir destination des fichiers copiés")
 
 
         btn_source.clicked.connect(self.choose_source)
         btn_dest.clicked.connect(self.choose_destination)
+        btn_copyDest.clicked.connect(self.choose_copy_destination)
 
 
-        row1 = QHBoxLayout()
-        row1.addWidget(self.source)
-        row1.addWidget(btn_source)
+        row_source = QHBoxLayout()
+        row_source.addWidget(self.source)
+        row_source.addWidget(btn_source)
 
 
-        row2 = QHBoxLayout()
-        row2.addWidget(self.destination)
-        row2.addWidget(btn_dest)
+        row_destination = QHBoxLayout()
+        row_destination.addWidget(self.destination)
+        row_destination.addWidget(btn_dest)
+
+        row_copyDestination = QHBoxLayout()
+        row_copyDestination.addWidget(self.copyDestination)
+        row_copyDestination.addWidget(btn_copyDest)
 
 
         self.start_button = QPushButton("Démarrer")
@@ -75,8 +83,9 @@ class MainWindow(QWidget):
         self.status = QLabel("Prêt")
 
 
-        layout.addLayout(row1)
-        layout.addLayout(row2)
+        layout.addLayout(row_source)
+        layout.addLayout(row_destination)
+        layout.addLayout(row_copyDestination)
         layout.addWidget(self.start_button)
         layout.addWidget(self.progressIndexation)
         layout.addWidget(self.progressIndexationLabel)
@@ -102,6 +111,10 @@ class MainWindow(QWidget):
         if folder:
             self.destination.setText(folder)
 
+    def choose_copy_destination(self):
+        folder = QFileDialog.getExistingDirectory(self)
+        if folder:
+            self.copyDestination.setText(folder)
 
 
     def start(self):
@@ -112,7 +125,8 @@ class MainWindow(QWidget):
 
         self.worker = ScannerWorker(
             self.source.text(),
-            self.destination.text()
+            self.destination.text(),
+            self.copyDestination.text()
         )
 
         self.worker.moveToThread(self.thread)
@@ -166,12 +180,18 @@ class MainWindow(QWidget):
 
 
     def doneIndexation(self):
-        self.progressIndexation.setRange(0, self.progressIndexation.value())
+        if self.progressIndexation.value() != 0:
+            self.progressIndexation.setRange(0, self.progressIndexation.value())
+        else:
+            self.progressIndexation.setRange(0, 100)
         self.progressIndexationLabel.hide()
         self.progressCopy.setRange(0, 0)
 
     def done(self):
-        self.progressCopy.setRange(0, self.progressCopy.value())
+        if self.progressCopy.value() != 0:
+            self.progressCopy.setRange(0, self.progressCopy.value())
+        else:
+            self.progressCopy.setRange(0, 100)
         self.progressCopyLabel.hide()
 
         self.status.setText("Terminé")

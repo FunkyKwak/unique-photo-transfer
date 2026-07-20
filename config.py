@@ -9,3 +9,4 @@ PHOTO_EXTENSIONS = [
 
 DEFAULT_SOURCE = "C:\\Users\\Yann\\Desktop\\TEMP\\test\\src"   
 DEFAULT_DESTINATION = "C:\\Users\\Yann\\Desktop\\TEMP\\test\\dst"
+DEFAULT_COPY_DESTINATION = "C:\\Users\\Yann\\Desktop\\TEMP\\test\\dst\\à ranger"

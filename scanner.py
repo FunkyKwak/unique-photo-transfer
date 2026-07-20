@@ -22,11 +22,12 @@ class ScannerWorker(QObject):
 
 
 
-    def __init__(self, source, destination):
+    def __init__(self, source, destination, copy_destination):
         super().__init__()
 
         self.source = source
         self.destination = destination
+        self.copy_destination = copy_destination
 
 
 
@@ -57,7 +58,9 @@ class ScannerWorker(QObject):
         self.filesSourceTotal.emit(len(files))
 
         nFilesCopied = 0
-        for i, filepath in enumerate(files):
+        nfilesSourceScanned = 0
+        self.filesCopied.emit(nFilesCopied)
+        for filepath in files:
 
             stat = os.stat(filepath)
 
@@ -76,7 +79,7 @@ class ScannerWorker(QObject):
                 )
 
                 target = os.path.join(
-                    self.destination,
+                    self.copy_destination,
                     relative
                 )
 
@@ -91,8 +94,9 @@ class ScannerWorker(QObject):
                 nFilesCopied += 1
                 self.filesCopied.emit(nFilesCopied)
 
-
-            self.filesSourceScanned.emit(i + 1)
+    
+            nfilesSourceScanned += 1
+            self.filesSourceScanned.emit(nfilesSourceScanned)
             
             time.sleep(1) # Simulate a long-running operation
 
@@ -105,10 +109,11 @@ class ScannerWorker(QObject):
 
         index = set()
 
+        nfilesDestIndexed = 0
 
         for root, _, filenames in os.walk(folder):
 
-            for i, filename in enumerate(filenames):
+            for filename in filenames:
 
                 filepath = os.path.join(
                     root,
@@ -124,7 +129,8 @@ class ScannerWorker(QObject):
                         int(stat.st_mtime)
                     )
                 )
-                self.filesDestScanned.emit(i)
+                nfilesDestIndexed += 1
+                self.filesDestScanned.emit(nfilesDestIndexed)
 
                 time.sleep(1) # Simulate a long-running operation
 
