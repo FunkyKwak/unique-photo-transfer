@@ -40,17 +40,21 @@ class MainWindow(QWidget):
         self.source.setText(config.DEFAULT_SOURCE)
         self.destination = QLineEdit()
         self.destination.setText(config.DEFAULT_DESTINATION)
+        self.destination2 = QLineEdit()
+        self.destination2.setText("")
         self.copyDestination = QLineEdit()
         self.copyDestination.setText(config.DEFAULT_COPY_DESTINATION)
 
 
         btn_source = QPushButton("Choisir source")
         btn_dest = QPushButton("Choisir destination")
+        btn_dest2 = QPushButton("Choisir destination")
         btn_copyDest = QPushButton("Choisir destination des fichiers copiés")
 
 
         btn_source.clicked.connect(self.choose_source)
         btn_dest.clicked.connect(self.choose_destination)
+        btn_dest2.clicked.connect(self.choose_destination2)
         btn_copyDest.clicked.connect(self.choose_copy_destination)
 
 
@@ -62,6 +66,9 @@ class MainWindow(QWidget):
         row_destination = QHBoxLayout()
         row_destination.addWidget(self.destination)
         row_destination.addWidget(btn_dest)
+        row_destination2 = QHBoxLayout()
+        row_destination2.addWidget(self.destination2)
+        row_destination2.addWidget(btn_dest2)
 
         row_copyDestination = QHBoxLayout()
         row_copyDestination.addWidget(self.copyDestination)
@@ -92,6 +99,7 @@ class MainWindow(QWidget):
 
         layout.addLayout(row_source)
         layout.addLayout(row_destination)
+        layout.addLayout(row_destination2)
         layout.addLayout(row_copyDestination)
         layout.addWidget(self.cbx_keep_structure)
 
@@ -121,6 +129,10 @@ class MainWindow(QWidget):
         folder = QFileDialog.getExistingDirectory(self)
         if folder:
             self.destination.setText(folder)
+    def choose_destination2(self):
+        folder = QFileDialog.getExistingDirectory(self)
+        if folder:
+            self.destination2.setText(folder)
 
     def choose_copy_destination(self):
         folder = QFileDialog.getExistingDirectory(self)
@@ -139,6 +151,7 @@ class MainWindow(QWidget):
         self.worker = ScannerWorker(
             self.source.text(),
             self.destination.text(),
+            self.destination2.text(),
             self.copyDestination.text(),
             self.cbx_keep_structure.isChecked(),
             self.database.filename

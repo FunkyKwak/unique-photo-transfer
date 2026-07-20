@@ -23,11 +23,12 @@ class ScannerWorker(QObject):
 
 
 
-    def __init__(self, source, destination, copy_destination, keep_structure, db_path):
+    def __init__(self, source, destination, destination2, copy_destination, keep_structure, db_path):
         super().__init__()
 
         self.source = source
         self.destination = destination
+        self.destination2 = destination2
         self.copy_destination = copy_destination
         self.keep_structure = keep_structure
         self.db_path = db_path
@@ -40,9 +41,7 @@ class ScannerWorker(QObject):
 
         self.message.emit("Indexation destination...")
 
-        existing = self.build_index(
-            self.destination
-        )
+        existing = self.build_index([self.destination, self.destination2])
 
         self.finishedIndexation.emit()
 
@@ -125,41 +124,42 @@ class ScannerWorker(QObject):
             self.filesSourceScanned.emit(nfilesSourceScanned)
             self.database.commit()  # Commit after each file to ensure data is saved
 
-            time.sleep(1) # Simulate a long-running operation
+            #time.sleep(1) # Simulate a long-running operation
 
         self.database.close()
         self.finished.emit()
 
 
 
-    def build_index(self, folder):
+    def build_index(self, folders):
 
         index = set()
 
         nfilesDestIndexed = 0
 
-        for root, _, filenames in os.walk(folder):
+        for folder in folders:
+            for root, _, filenames in os.walk(folder):
 
-            for filename in filenames:
+                for filename in filenames:
 
-                filepath = os.path.join(
-                    root,
-                    filename
-                )
-
-                stat = os.stat(filepath)
-
-                index.add(
-                    (
-                        filename,
-                        stat.st_size,
-                        int(stat.st_mtime)
+                    filepath = os.path.join(
+                        root,
+                        filename
                     )
-                )
-                nfilesDestIndexed += 1
-                self.filesDestScanned.emit(nfilesDestIndexed)
 
-                time.sleep(1) # Simulate a long-running operation
+                    stat = os.stat(filepath)
+
+                    index.add(
+                        (
+                            filename,
+                            stat.st_size,
+                            int(stat.st_mtime)
+                        )
+                    )
+                    nfilesDestIndexed += 1
+                    self.filesDestScanned.emit(nfilesDestIndexed)
+
+                    #time.sleep(1) # Simulate a long-running operation
 
         return index
         
