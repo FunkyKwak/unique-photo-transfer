@@ -4,6 +4,7 @@ import time
 from PySide6.QtCore import QObject, Signal
 
 from copier import copy_file
+from database import Database, ResultStatus
 
 
 
@@ -22,17 +23,20 @@ class ScannerWorker(QObject):
 
 
 
-    def __init__(self, source, destination, copy_destination, keep_structure):
+    def __init__(self, source, destination, copy_destination, keep_structure, db_path):
         super().__init__()
 
         self.source = source
         self.destination = destination
         self.copy_destination = copy_destination
         self.keep_structure = keep_structure
+        self.db_path = db_path
 
 
 
     def run(self):
+
+        self.database = Database(self.db_path)
 
         self.message.emit("Indexation destination...")
 
@@ -72,7 +76,6 @@ class ScannerWorker(QObject):
                 int(stat.st_mtime)
             )
 
-
             if key not in existing:
 
                 relative = os.path.relpath(
@@ -100,15 +103,31 @@ class ScannerWorker(QObject):
                     target
                 )
                 nFilesCopied += 1
+                self.database.add_result(
+                    status=ResultStatus.COPIED,
+                    source_path=filepath,
+                    destination_path=target,
+                    size=key[1],
+                    modified_time=key[2]
+                )
                 self.filesCopied.emit(nFilesCopied)
+            
+            else:
+                self.database.add_result(
+                    status=ResultStatus.ALREADY_EXISTS,
+                    source_path=filepath,
+                    destination_path=None,  #TODO: stocker le chemin de destination dans le set "existing"
+                    size=key[1],
+                    modified_time=key[2]
+                )
 
-    
             nfilesSourceScanned += 1
             self.filesSourceScanned.emit(nfilesSourceScanned)
-            
+            self.database.commit()  # Commit after each file to ensure data is saved
+
             time.sleep(1) # Simulate a long-running operation
 
-
+        self.database.close()
         self.finished.emit()
 
 

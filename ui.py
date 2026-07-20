@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (
 )
 
 from PySide6.QtCore import QThread, Signal
-
+from results_dialog import ResultsDialog
+from database import Database
 import config
 from scanner import ScannerWorker
 
@@ -84,6 +85,10 @@ class MainWindow(QWidget):
 
         self.status = QLabel("Prêt")
 
+        self.btn_results = QPushButton("Voir les résultats")
+        self.btn_results.clicked.connect(self.show_results)
+
+
 
         layout.addLayout(row_source)
         layout.addLayout(row_destination)
@@ -124,13 +129,16 @@ class MainWindow(QWidget):
 
         self.start_button.setEnabled(False)
 
+        self.database = Database()
+
         self.thread = QThread()
 
         self.worker = ScannerWorker(
             self.source.text(),
             self.destination.text(),
             self.copyDestination.text(),
-            self.cbx_keep_structure.isChecked()
+            self.cbx_keep_structure.isChecked(),
+            self.database.filename
         )
 
         self.worker.moveToThread(self.thread)
@@ -202,5 +210,14 @@ class MainWindow(QWidget):
         self.status.setText("Terminé")
         self.start_button.setEnabled(True)
 
+        self.database.close()
         self.thread.quit()
         self.thread.wait()
+
+
+    def show_results(self):
+        dialog = ResultsDialog(
+            self.database,
+            None,
+        )
+        dialog.exec()
