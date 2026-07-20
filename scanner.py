@@ -22,12 +22,13 @@ class ScannerWorker(QObject):
 
 
 
-    def __init__(self, source, destination, copy_destination):
+    def __init__(self, source, destination, copy_destination, keep_structure):
         super().__init__()
 
         self.source = source
         self.destination = destination
         self.copy_destination = copy_destination
+        self.keep_structure = keep_structure
 
 
 
@@ -63,9 +64,10 @@ class ScannerWorker(QObject):
         for filepath in files:
 
             stat = os.stat(filepath)
+            filename = os.path.basename(filepath)
 
             key = (
-                os.path.basename(filepath),
+                filename,
                 stat.st_size,
                 int(stat.st_mtime)
             )
@@ -78,10 +80,16 @@ class ScannerWorker(QObject):
                     self.source
                 )
 
-                target = os.path.join(
-                    self.copy_destination,
-                    relative
-                )
+                if self.keep_structure:
+                    target = os.path.join(
+                        self.copy_destination,
+                        relative
+                    )
+                else:
+                    target = os.path.join(
+                        self.copy_destination,
+                        filename
+                    )
 
                 self.message.emit(
                     f"Copie : {relative}"

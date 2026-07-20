@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import (
+    QCheckBox,
     QWidget,
     QPushButton,
     QLabel,
@@ -65,6 +66,7 @@ class MainWindow(QWidget):
         row_copyDestination.addWidget(self.copyDestination)
         row_copyDestination.addWidget(btn_copyDest)
 
+        self.cbx_keep_structure = QCheckBox("Conserver la structure des dossiers")
 
         self.start_button = QPushButton("Démarrer")
         self.start_button.clicked.connect(self.start)
@@ -86,6 +88,7 @@ class MainWindow(QWidget):
         layout.addLayout(row_source)
         layout.addLayout(row_destination)
         layout.addLayout(row_copyDestination)
+        layout.addWidget(self.cbx_keep_structure)
         layout.addWidget(self.start_button)
         layout.addWidget(self.progressIndexation)
         layout.addWidget(self.progressIndexationLabel)
@@ -126,7 +129,8 @@ class MainWindow(QWidget):
         self.worker = ScannerWorker(
             self.source.text(),
             self.destination.text(),
-            self.copyDestination.text()
+            self.copyDestination.text(),
+            self.cbx_keep_structure.isChecked()
         )
 
         self.worker.moveToThread(self.thread)
