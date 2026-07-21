@@ -150,7 +150,8 @@ class ScannerWorker(QObject):
         for folder in folders:
             self.currRootFolder = folder
             self.nfilesDestIndexed = 0
-            self.scan(self.currRootFolder)
+            if self.currRootFolder != "":
+                self.scan(self.currRootFolder)
 
         return self.index
     

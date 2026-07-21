@@ -413,12 +413,36 @@ class Database:
         )
         return cursor.fetchall()
     
+    def get_source_details(self, result_id):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                id,
+                filename,
+                source_path,
+                source_size,
+                source_modified_time,
+                source_creation_time
+            FROM results
+            WHERE id = ?
+            ORDER BY id
+            """,
+            (result_id,)
+        )
+        return cursor.fetchone()
+    
     def get_partial_matches(self, result_id):
         cursor = self.connection.cursor()
         cursor.execute(
             """
             SELECT
+                id,
+                filename,
                 destination_path,
+                destination_size,
+                destination_modified_time,
+                destination_creation_time,
                 match_filename,
                 match_size,
                 match_modified_time,

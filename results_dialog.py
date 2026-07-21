@@ -1,3 +1,4 @@
+from datetime import datetime
 import subprocess
 from pathlib import Path
 
@@ -115,7 +116,66 @@ class ResultsModel(QAbstractTableModel):
 
 
 # ==========================================================
-# Widget des détails
+# Widget des détails du fichier source
+# ==========================================================
+class SourceDetailsWidget(QTreeWidget):
+
+
+    def __init__(self):
+        super().__init__()
+        self.setHeaderLabels(
+            [
+                "Fichier source",
+                "Détails"
+            ]
+        )
+        self.itemDoubleClicked.connect(self.open_path)
+
+
+    def display_details(self, source_details):
+        self.clear()
+
+        id, filename, source_path, source_size, source_modified_time, source_creation_time = source_details
+        
+        root = QTreeWidgetItem(
+            [
+                source_path,
+                ""
+            ]
+        )
+        self.addTopLevelItem(root)
+        root.setFirstColumnSpanned(True)
+
+        root.addChild(QTreeWidgetItem([
+            "Nom",
+            filename
+        ]))
+        root.addChild(QTreeWidgetItem([
+            "Taille",
+            str(source_size)
+        ]))
+        root.addChild(QTreeWidgetItem([
+            "Date modification",
+            datetime.fromtimestamp(source_modified_time).strftime('%d/%m/%Y %H:%M:%S')
+        ]))
+        root.addChild(QTreeWidgetItem([
+            "Date création",
+            datetime.fromtimestamp(source_creation_time).strftime('%d/%m/%Y %H:%M:%S')
+        ]))
+
+        self.header().resizeSection(0, 200)
+        self.resizeColumnToContents(1)
+        self.expandAll()
+        
+    def open_path(self, item, column):
+        path = item.text(0)
+        if Path(path).exists():
+            open_and_select_file(path)
+
+
+
+# ==========================================================
+# Widget des matchs partiels
 # ==========================================================
 class PartialMatchesWidget(QTreeWidget):
 
@@ -128,36 +188,27 @@ class PartialMatchesWidget(QTreeWidget):
                 "Détails"
             ]
         )
-        self.itemDoubleClicked.connect(self.open_item)
+        self.itemDoubleClicked.connect(self.open_path)
 
 
     def display_matches(self, matches):
         self.clear()
 
         if not matches:
-            item = QTreeWidgetItem(
+            root = QTreeWidgetItem(
                 [
                     "Aucune correspondance",
                     ""
                 ]
             )
-            self.addTopLevelItem(item)
+            self.addTopLevelItem(root)
+            root.setFirstColumnSpanned(True)
             return
 
 
         for match in matches:
-            #
-            # Structure attendue :
-            #
-            # (
-            # destination_path,
-            # match_filename,
-            # match_size,
-            # match_modified_time,
-            # match_creation_time
-            # )
-            #
-            destination_path = match[0]
+            id, filename, destination_path, destination_size, destination_modified_time, destination_creation_time, match_filename, match_size, match_modified_time, match_creation_time = match
+            
             root = QTreeWidgetItem(
                 [
                     destination_path,
@@ -165,42 +216,32 @@ class PartialMatchesWidget(QTreeWidget):
                 ]
             )
             self.addTopLevelItem(root)
+            root.setFirstColumnSpanned(True)
 
-            checks = [
-                (
-                    "Nom",
-                    match[1]
-                ),
-                (
-                    "Taille",
-                    match[2]
-                ),
-                (
-                    "Date modification",
-                    match[3]
-                ),
-                (
-                    "Date création",
-                    match[4]
-                )
-            ]
+            root.addChild(QTreeWidgetItem([
+                "Nom",
+                "✓" if match_filename else filename
+            ]))
+            root.addChild(QTreeWidgetItem([
+                "Taille",
+                "✓" if match_size else str(destination_size)
+            ]))
+            root.addChild(QTreeWidgetItem([
+                "Date modification",
+                "✓" if match_modified_time else datetime.fromtimestamp(destination_modified_time).strftime('%d/%m/%Y %H:%M:%S')
+            ]))
+            root.addChild(QTreeWidgetItem([
+                "Date création",
+                "✓" if destination_creation_time else datetime.fromtimestamp(destination_creation_time).strftime('%d/%m/%Y %H:%M:%S')
+            ]))
 
-
-            for name, ok in checks:
-                child = QTreeWidgetItem(
-                    [
-                        name,
-                        "✓" if ok else ""
-                    ]
-                )
-                root.addChild(child)
-
-        self.resizeColumnToContents(0)
+        self.header().resizeSection(0, 200)
         self.resizeColumnToContents(1)
+        self.expandAll()
 
 
 
-    def open_item(self, item, column):
+    def open_path(self, item, column):
         path = item.text(0)
         if Path(path).exists():
             open_and_select_file(path)
@@ -243,7 +284,8 @@ class ResultsDialog(QDialog):
         # Panneau détails
         # --------------------------------------------------
         self.details_title = QLabel("Correspondances partielles")
-        self.details = PartialMatchesWidget()
+        self.source_details = SourceDetailsWidget()
+        self.partial_details = PartialMatchesWidget()
 
 
         # --------------------------------------------------
@@ -256,7 +298,10 @@ class ResultsDialog(QDialog):
 
         details_container = QVBoxLayout()
         details_container.addWidget(self.details_title)
-        details_container.addWidget(self.details)
+        details_table_container = QHBoxLayout()
+        details_table_container.addWidget(self.source_details)
+        details_table_container.addWidget(self.partial_details)
+        details_container.addLayout(details_table_container)
 
         from PySide6.QtWidgets import QWidget
         table_widget = QWidget()
@@ -312,15 +357,14 @@ class ResultsDialog(QDialog):
         indexes = self.table.selectionModel().selectedRows()
 
         if not indexes:
-            self.details.display_matches([])
+            self.partial_details.display_matches([])
             return
 
         row = indexes[0].row()
         result_id = self.model.get_result_id(row)
 
-        matches = self.database.get_partial_matches(result_id)
-
-        self.details.display_matches(matches)
+        self.source_details.display_details(self.database.get_source_details(result_id))
+        self.partial_details.display_matches(self.database.get_partial_matches(result_id))
 
 
 
