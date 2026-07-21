@@ -10,6 +10,7 @@ class ResultStatus(IntEnum):
     ALREADY_EXISTS = 2
     HASH_PENDING = 3
     PARTIAL_MATCH = 4
+    USER_CONFIRMED = 5
 
 class UserStatus(IntEnum):
     PENDING = 1
@@ -37,17 +38,12 @@ class Database:
                 source_modified_time INTEGER,
                 source_creation_time INTEGER,
                 destination_path TEXT,
-                result_status INTEGER NOT NULL,
-                user_status INTEGER
+                result_status INTEGER NOT NULL
             )
         """)
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_result_status
             ON results(result_status)
-        """)
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_user_status
-            ON results(user_status)
         """)
 
         cursor.execute("""
@@ -67,9 +63,34 @@ class Database:
                 destination_path TEXT NOT NULL,
                 destination_size INTEGER,
                 destination_modified_time INTEGER,
-                destination_creation_time INTEGER
+                destination_creation_time INTEGER,
+                destination_hash TEXT
             )
         """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS partial_matches
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                result_id INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                destination_path TEXT NOT NULL,
+                destination_size INTEGER,
+                destination_modified_time INTEGER,
+                destination_creation_time INTEGER,
+                destination_hash TEXT,
+                match_score INTEGER NOT NULL,
+                match_filename BOOLEAN NOT NULL CHECK (match_filename IN (0, 1)),
+                match_path BOOLEAN NOT NULL CHECK (match_path IN (0, 1)),
+                match_size BOOLEAN NOT NULL CHECK (match_size IN (0, 1)),
+                match_modified_time BOOLEAN NOT NULL CHECK (match_modified_time IN (0, 1)),
+                match_creation_time BOOLEAN NOT NULL CHECK (match_creation_time IN (0, 1)),
+                match_hash BOOLEAN NOT NULL CHECK (match_hash IN (0, 1)),
+                user_status INTEGER NOT NULL DEFAULT 1,
+                FOREIGN KEY(result_id) REFERENCES results(id)  
+            )
+        """)
+
         self.connection.commit()
 
 
@@ -156,13 +177,19 @@ class Database:
             FROM destination_index
             WHERE filename = ?
             AND destination_size = ?
-            AND destination_modified_time = ?
             """,
-            (filename, size, modified_time)
+            (filename, size)
         )
         records = cursor.fetchall()
         if len(records) == 1:
             return records[0][1]  # Return the destination_path
+        else:
+            for record in records:
+                if same_time(
+                    modified_time,
+                    record[3]  # destination_modified_time
+                ):
+                    return record[1]  # Return the destination_path
 
         return None
 
@@ -173,7 +200,6 @@ class Database:
         source_modified_time,
         source_creation_time,
         result_status,
-        user_status=None,
         destination_path=None,
     ):
 
@@ -187,10 +213,9 @@ class Database:
                 source_modified_time,
                 source_creation_time,
                 result_status,
-                user_status,
                 destination_path
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 Path(source_path).name,
@@ -199,7 +224,6 @@ class Database:
                 source_modified_time,
                 source_creation_time,
                 int(result_status),
-                int(user_status) if user_status else None,
                 str(destination_path) if destination_path else None
             )
         )
@@ -218,7 +242,6 @@ class Database:
             source_modified_time,
             source_creation_time,
             result_status,
-            user_status,
             destination_path
         )
         """
@@ -233,10 +256,9 @@ class Database:
                 source_modified_time,
                 source_creation_time,
                 result_status,
-                user_status,
                 destination_path
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             results
         )
@@ -249,23 +271,18 @@ class Database:
 
 
 
-    def get_results(self, result_status=None, user_status=None):
+    def get_results(self, result_status=None):
         cursor = self.connection.cursor()
         
         sql_where = ""
-        if result_status and user_status:
-            sql_where = "WHERE result_status = %(result_status)s AND user_status = %(user_status)s"
-        elif result_status:
+        if result_status:
             sql_where = "WHERE result_status = %(result_status)s"
-        elif user_status:
-            sql_where = "WHERE user_status = %(user_status)s"
     
         cursor.execute(
             """
             SELECT
                 filename,
                 result_status,
-                user_status,
                 source_path,
                 destination_path
             FROM results
@@ -274,8 +291,7 @@ class Database:
             """
             .format(sql_where=sql_where),
             {
-                "result_status": result_status,
-                "user_status": user_status
+                "result_status": result_status
             }
         )
         return cursor.fetchall()
@@ -285,3 +301,16 @@ class Database:
         self.connection = sqlite3.connect(self.filename)
     def close(self):
         self.connection.close()
+
+
+        
+
+def same_time(t1: int, t2: int) -> bool:
+    delta = abs(t1 - t2)
+    return (
+        delta == 0
+        or (
+            delta <= 24 * 3600
+            and delta % 3600 == 0
+        )
+    )

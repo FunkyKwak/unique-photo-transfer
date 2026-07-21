@@ -28,8 +28,7 @@ class ResultsModel(QAbstractTableModel):
 
     headers = [
         "Nom",
-        "Résultat analyse",
-        "Traitement utilisateur",
+        "Statut",
         "Source",
         "Destination"
     ]
@@ -48,7 +47,7 @@ class ResultsModel(QAbstractTableModel):
 
 
     def columnCount(self, parent=QModelIndex()):
-        return 5
+        return 4
 
 
 
@@ -63,7 +62,7 @@ class ResultsModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
 
-            filename, result_status, user_status, source, destination = row
+            filename, result_status, source, destination = row
 
 
             if index.column() == 0:
@@ -88,27 +87,10 @@ class ResultsModel(QAbstractTableModel):
 
 
             if index.column() == 2:
-
-                if not user_status:
-                    return ""
-                
-                if user_status == UserStatus.PENDING:
-                    return "En attente"
-
-                if user_status == UserStatus.CONFIRMED_DUPLICATE:
-                    return "Déjà présent"
-
-                if user_status == UserStatus.CONFIRMED_DIFFERENT:
-                    return "Copié"
-
-                return "Erreur"
-
-
-            if index.column() == 3:
                 return source
 
 
-            if index.column() == 4:
+            if index.column() == 3:
                 return destination
 
 
