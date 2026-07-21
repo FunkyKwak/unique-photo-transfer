@@ -393,11 +393,15 @@ class Database:
         cursor.execute(
             """
             SELECT
-                filename,
-                result_status,
-                source_path,
-                destination_path
-            FROM results
+                r.filename,
+                r.result_status,
+                r.source_path,
+                r.destination_path,
+                case 
+                    WHEN (SELECT COUNT(*) FROM partial_matches p WHERE p.result_id = r.id) = 1 THEN (SELECT destination_path FROM partial_matches p WHERE p.result_id = r.id LIMIT 1)
+                    ELSE (SELECT COUNT(*) FROM partial_matches p WHERE p.result_id = r.id)
+                END as partial_matches
+            FROM results r
             {sql_where}
             ORDER BY filename
             """

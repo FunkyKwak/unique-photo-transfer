@@ -30,9 +30,9 @@ class ResultsModel(QAbstractTableModel):
         "Nom",
         "Statut",
         "Source",
-        "Destination"
+        "Destination",
+        "Correspondance partielle"
     ]
-
 
 
     def __init__(self, data):
@@ -44,11 +44,8 @@ class ResultsModel(QAbstractTableModel):
     def rowCount(self, parent=QModelIndex()):
         return len(self.data_list)
 
-
-
     def columnCount(self, parent=QModelIndex()):
-        return 4
-
+        return len(self.headers)
 
 
     def data(self, index, role):
@@ -56,18 +53,14 @@ class ResultsModel(QAbstractTableModel):
         if not index.isValid():
             return None
 
-
         row = self.data_list[index.row()]
-
 
         if role == Qt.DisplayRole:
 
-            filename, result_status, source, destination = row
-
+            filename, result_status, source, destination, partial_matches = row
 
             if index.column() == 0:
                 return filename
-
 
             if index.column() == 1:
 
@@ -89,161 +82,79 @@ class ResultsModel(QAbstractTableModel):
             if index.column() == 2:
                 return source
 
-
             if index.column() == 3:
                 return destination
+            
+            if index.column() == 4:
+                return partial_matches
 
 
 
-    def headerData(
-        self,
-        section,
-        orientation,
-        role
-    ):
-
-        if (
-            orientation == Qt.Horizontal
-            and role == Qt.DisplayRole
-        ):
+    def headerData(self, section, orientation, role):
+        if (orientation == Qt.Horizontal and role == Qt.DisplayRole):
             return self.headers[section]
-
 
 
 class ResultsDialog(QDialog):
 
 
-    def __init__(
-        self,
-        database,
-        status=None
-    ):
-
+    def __init__(self, database, status=None):
         super().__init__()
-
 
         self.database = database
         self.status = status
 
-
-        self.setWindowTitle(
-            "Résultats"
-        )
-
-        self.resize(
-            1000,
-            600
-        )
-
-
+        self.setWindowTitle("Résultats")
+        self.resize(1300, 800)
         self.create_ui()
 
 
 
     def create_ui(self):
-
         layout = QVBoxLayout()
-
 
         self.info = QLabel()
 
-
         self.table = QTableView()
-
         self.table.setSortingEnabled(True)
-
-        self.table.doubleClicked.connect(
-            self.open_path
-        )
-
+        self.table.doubleClicked.connect(self.open_path)
 
         self.refresh()
 
-
-
         buttons = QHBoxLayout()
-
-
-        close = QPushButton(
-            "Fermer"
-        )
-
-        close.clicked.connect(
-            self.close
-        )
-
-
+        close = QPushButton("Fermer")
+        close.clicked.connect(self.close)
         buttons.addStretch()
+        buttons.addWidget(close)
 
-        buttons.addWidget(
-            close
-        )
+        layout.addWidget(self.info)
+        layout.addWidget(self.table)
 
+        layout.addLayout(buttons)
 
-        layout.addWidget(
-            self.info
-        )
-
-        layout.addWidget(
-            self.table
-        )
-
-        layout.addLayout(
-            buttons
-        )
-
-
-        self.setLayout(
-            layout
-        )
+        self.setLayout(layout)
 
 
 
     def refresh(self):
-
-        rows = self.database.get_results(
-            self.status
-        )
-
-
-        self.info.setText(
-            f"{len(rows)} résultat(s)"
-        )
-
-
-        self.model = ResultsModel(
-            rows
-        )
-
-
-        self.table.setModel(
-            self.model
-        )
-
-
+        rows = self.database.get_results(self.status)
+        self.info.setText(f"{len(rows)} résultat(s)")
+        self.model = ResultsModel(rows)
+        self.table.setModel(self.model)
         self.table.resizeColumnsToContents()
 
 
 
     def open_path(self, index):
-
         row = index.row()
         column = index.column()
 
-
         data = self.model.data_list[row]
-
 
         path = None
 
-
-        if column == 2:
-            path = data[2]
-
-
-        elif column == 3:
-            path = data[3]
-
+        if column in (2, 3, 4):
+            path = data[column]
 
         if path:
             open_and_select_file(path)
@@ -251,9 +162,7 @@ class ResultsDialog(QDialog):
 
 
 def open_and_select_file(path):
-
     path = str(Path(path).resolve())
-
     subprocess.Popen(
         [
             "explorer.exe",
