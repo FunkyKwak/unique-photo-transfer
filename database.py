@@ -37,16 +37,56 @@ class Database:
             CREATE INDEX IF NOT EXISTS idx_status
             ON results(status)
         """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS settings
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT NOT NULL,
+                value TEXT
+            )
+        """)
         self.connection.commit()
 
 
 
-    def clear(self):
+    def add_setting(self, key, value):
         self.connection.execute(
-            "DELETE FROM results"
+            """
+            INSERT OR REPLACE INTO settings
+            (
+                key,
+                value
+            )
+            VALUES (?, ?)
+            """,
+            (key, value)
         )
         self.connection.commit()
 
+    def add_settings(self, settings):
+
+        """
+        settings = liste de tuples :
+
+        (
+            key,
+            value
+        )
+        """
+
+        self.connection.executemany(
+            """
+            INSERT OR REPLACE INTO settings
+            (
+                key,
+                value
+            )
+            VALUES (?, ?)
+            """,
+            settings
+        )
+        self.connection.commit()
 
 
     def add_result(

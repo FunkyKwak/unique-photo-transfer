@@ -1,12 +1,3 @@
-# Extensions éventuellement filtrables plus tard
-PHOTO_EXTENSIONS = [
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".heic",
-    ".raw"
-]
-
 EXCLUDED_DIRECTORIES = {
     "@eaDir",
     ".git",

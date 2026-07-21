@@ -148,6 +148,17 @@ class MainWindow(QWidget):
 
         self.database = Database()
 
+        self.database.add_settings(
+            [
+                ("source", self.source.text()),
+                ("destination", self.destination.text()),
+                ("destination2", self.destination2.text()),
+                ("copy_destination", self.copyDestination.text()),
+                ("keep_structure", str(self.cbx_keep_structure.isChecked())),
+                ("EXCLUDED_DIRECTORIES", str(config.EXCLUDED_DIRECTORIES))
+            ]
+        )
+
         self.thread = QThread()
 
         self.worker = ScannerWorker(
