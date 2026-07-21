@@ -19,7 +19,7 @@ from PySide6.QtCore import (
 
 from PySide6.QtGui import QDesktopServices
 
-from database import ResultStatus
+from database import ResultStatus, UserStatus
 
 
 
@@ -28,7 +28,8 @@ class ResultsModel(QAbstractTableModel):
 
     headers = [
         "Nom",
-        "Statut",
+        "Résultat analyse",
+        "Traitement utilisateur",
         "Source",
         "Destination"
     ]
@@ -36,22 +37,18 @@ class ResultsModel(QAbstractTableModel):
 
 
     def __init__(self, data):
-
         super().__init__()
-
         self.data_list = data
 
 
 
     def rowCount(self, parent=QModelIndex()):
-
         return len(self.data_list)
 
 
 
     def columnCount(self, parent=QModelIndex()):
-
-        return 4
+        return 5
 
 
 
@@ -66,7 +63,7 @@ class ResultsModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
 
-            filename, status, source, destination = row
+            filename, result_status, user_status, source, destination = row
 
 
             if index.column() == 0:
@@ -75,20 +72,43 @@ class ResultsModel(QAbstractTableModel):
 
             if index.column() == 1:
 
-                if status == ResultStatus.COPIED:
+                if result_status == ResultStatus.COPIED:
                     return "Copié"
 
-                if status == ResultStatus.ALREADY_EXISTS:
+                if result_status == ResultStatus.ALREADY_EXISTS:
                     return "Déjà présent"
+
+                if result_status == ResultStatus.HASH_PENDING:
+                    return "Hash en attente"
+
+                if result_status == ResultStatus.PARTIAL_MATCH:
+                    return "Correspondance partielle, à vérifier"
 
                 return "Erreur"
 
 
             if index.column() == 2:
-                return source
+
+                if not user_status:
+                    return ""
+                
+                if user_status == UserStatus.PENDING:
+                    return "En attente"
+
+                if user_status == UserStatus.CONFIRMED_DUPLICATE:
+                    return "Déjà présent"
+
+                if user_status == UserStatus.CONFIRMED_DIFFERENT:
+                    return "Copié"
+
+                return "Erreur"
 
 
             if index.column() == 3:
+                return source
+
+
+            if index.column() == 4:
                 return destination
 
 

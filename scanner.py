@@ -71,13 +71,9 @@ class ScannerWorker(QObject):
             stat = os.stat(filepath)
             filename = os.path.basename(filepath)
 
-            key = (
-                filename,
-                stat.st_size,
-                int(stat.st_mtime)
-            )
+            destination_match_path = self.database.get_destination_index_exact(filename, stat.st_size, int(stat.st_mtime))
 
-            if key not in self.index:
+            if destination_match_path is None:
 
                 relative = os.path.relpath(
                     filepath,
@@ -105,21 +101,23 @@ class ScannerWorker(QObject):
                 )
                 nFilesCopied += 1
                 self.database.add_result(
-                    status=ResultStatus.COPIED,
+                    result_status=ResultStatus.COPIED,
                     source_path=filepath,
                     destination_path=target,
-                    size=key[1],
-                    modified_time=key[2]
+                    source_size=stat.st_size,
+                    source_modified_time=int(stat.st_mtime),
+                    source_creation_time=int(stat.st_ctime)
                 )
                 self.filesCopied.emit(nFilesCopied)
             
             else:
                 self.database.add_result(
-                    status=ResultStatus.ALREADY_EXISTS,
+                    result_status=ResultStatus.ALREADY_EXISTS,
                     source_path=filepath,
-                    destination_path=None,  #TODO: stocker le chemin de destination dans le set "existing"
-                    size=key[1],
-                    modified_time=key[2]
+                    destination_path=destination_match_path,
+                    source_size=stat.st_size,
+                    source_modified_time=int(stat.st_mtime),
+                    source_creation_time=int(stat.st_ctime)
                 )
 
             nfilesSourceScanned += 1
@@ -158,12 +156,12 @@ class ScannerWorker(QObject):
 
     def handle_file(self, entry):
         stat = entry.stat()
-        self.index.add(
-            (
-                entry.name,
-                stat.st_size,
-                int(stat.st_mtime)
-            )
+        self.database.add_destination_index(
+            filename=entry.name,
+            destination_path=entry.path,
+            destination_size=stat.st_size,
+            destination_modified_time=int(stat.st_mtime),
+            destination_creation_time=int(stat.st_ctime)
         )
         self.nfilesDestIndexed += 1
         self.filesDestScanned.emit(
