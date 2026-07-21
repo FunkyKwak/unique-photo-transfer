@@ -224,4 +224,5 @@ __marimo__/
 
 
 # CUSTOM
-session*.db
+session_*.db
+session_*.db-journal

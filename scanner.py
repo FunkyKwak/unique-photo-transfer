@@ -71,46 +71,12 @@ class ScannerWorker(QObject):
             stat = os.stat(filepath)
             filename = os.path.basename(filepath)
 
+            # Search for an exact match in the destination index
             destination_match_path = self.database.get_destination_index_exact(filename, stat.st_size, int(stat.st_mtime))
 
-            if destination_match_path is None:
 
-                relative = os.path.relpath(
-                    filepath,
-                    self.source
-                )
-
-                if self.keep_structure:
-                    target = os.path.join(
-                        self.copy_destination,
-                        relative
-                    )
-                else:
-                    target = os.path.join(
-                        self.copy_destination,
-                        filename
-                    )
-
-                self.message.emit(
-                    f"Copie : {relative}"
-                )
-
-                copy_file(
-                    filepath,
-                    target
-                )
-                nFilesCopied += 1
-                self.database.add_result(
-                    result_status=ResultStatus.COPIED,
-                    source_path=filepath,
-                    destination_path=target,
-                    source_size=stat.st_size,
-                    source_modified_time=int(stat.st_mtime),
-                    source_creation_time=int(stat.st_ctime)
-                )
-                self.filesCopied.emit(nFilesCopied)
-            
-            else:
+            # Exact match : mark as already exists, do not copy
+            if destination_match_path:
                 self.database.add_result(
                     result_status=ResultStatus.ALREADY_EXISTS,
                     source_path=filepath,
@@ -119,6 +85,52 @@ class ScannerWorker(QObject):
                     source_modified_time=int(stat.st_mtime),
                     source_creation_time=int(stat.st_ctime)
                 )
+
+            else:
+                result_id = self.database.add_result(
+                    result_status=ResultStatus.PARTIAL_MATCH,
+                    source_path=filepath,
+                    destination_path=destination_match_path,
+                    source_size=stat.st_size,
+                    source_modified_time=int(stat.st_mtime),
+                    source_creation_time=int(stat.st_ctime)
+                )
+                destination_partial_matches_with_name = self.database.get_destination_index_partials_with_name(result_id)
+
+
+                # If no partial matches found, copy the file to the copy destination
+                if len(destination_partial_matches_with_name) == 0:
+                    relative = os.path.relpath(
+                        filepath,
+                        self.source
+                    )
+
+                    if self.keep_structure:
+                        target = os.path.join(
+                            self.copy_destination,
+                            relative
+                        )
+                    else:
+                        target = os.path.join(
+                            self.copy_destination,
+                            filename
+                        )
+
+                    self.message.emit(
+                        f"Copie : {relative}"
+                    )
+
+                    copy_file(
+                        filepath,
+                        target
+                    )
+                    nFilesCopied += 1
+                    self.database.update_result(
+                        result_id=result_id,
+                        result_status=ResultStatus.COPIED,
+                        destination_path=target
+                    )
+                    self.filesCopied.emit(nFilesCopied)
 
             nfilesSourceScanned += 1
             self.filesSourceScanned.emit(nfilesSourceScanned)

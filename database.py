@@ -81,11 +81,10 @@ class Database:
                 destination_hash TEXT,
                 match_score INTEGER NOT NULL,
                 match_filename BOOLEAN NOT NULL CHECK (match_filename IN (0, 1)),
-                match_path BOOLEAN NOT NULL CHECK (match_path IN (0, 1)),
                 match_size BOOLEAN NOT NULL CHECK (match_size IN (0, 1)),
                 match_modified_time BOOLEAN NOT NULL CHECK (match_modified_time IN (0, 1)),
                 match_creation_time BOOLEAN NOT NULL CHECK (match_creation_time IN (0, 1)),
-                match_hash BOOLEAN NOT NULL CHECK (match_hash IN (0, 1)),
+                match_hash BOOLEAN CHECK (match_hash IN (0, 1)),
                 user_status INTEGER NOT NULL DEFAULT 1,
                 FOREIGN KEY(result_id) REFERENCES results(id)  
             )
@@ -193,6 +192,100 @@ class Database:
 
         return None
 
+    def get_destination_index_partials_with_name(self, result_id):
+        cursor = self.connection.cursor()
+        # Retourne les fichiers dans la destination, avec le même nom que le fichier source
+        cursor.execute(
+            """
+            SELECT
+                r.id as result_id,
+                r.filename,
+                d.destination_path,
+                d.destination_size,
+                d.destination_modified_time,
+                d.destination_creation_time,
+                case when r.filename = d.filename then 1 else 0 end as match_filename,
+                case when r.source_size = d.destination_size then 1 else 0 end as match_size,
+                case when r.source_modified_time = d.destination_modified_time then 1 else 0 end as match_modified_time,
+                case when r.source_creation_time = d.destination_creation_time then 1 else 0 end as match_creation_time
+            FROM results r
+            INNER JOIN destination_index d ON r.filename = d.filename
+            WHERE r.id = ?
+            """,
+            (result_id,)
+        )
+
+        partial_matches = cursor.fetchall()
+
+        self.add_partial_matches(partial_matches)
+
+        return partial_matches
+    
+
+    def add_partial_matches(
+        self,
+        partial_matches):
+        
+        """
+        partial_matches = liste de tuples :
+        
+        (
+            result_id,
+            filename,
+            destination_path,
+            destination_size,
+            destination_modified_time,
+            destination_creation_time,
+            match_filename,
+            match_size,
+            match_modified_time,
+            match_creation_time,
+        )
+        """
+
+        self.connection.executemany(
+            """
+            INSERT INTO partial_matches
+            (
+                result_id,
+                filename,
+                destination_path,
+                destination_size,
+                destination_modified_time,
+                destination_creation_time,
+                match_score,
+                match_filename,
+                match_size,
+                match_modified_time,
+                match_creation_time
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+            """,
+            partial_matches
+        )
+        self.connection.commit()
+
+
+        # Update match_score after inserting all partial matches
+        result_ids = [partial_match[0] for partial_match in partial_matches]
+        result_ids = set(result_ids)  # Remove duplicates
+        for result_id in result_ids:
+            self.update_match_score(result_id)  
+
+    def update_match_score(self, result_id):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+            UPDATE partial_matches
+            SET match_score = (match_filename + match_size + match_modified_time + match_creation_time)
+            WHERE result_id = ?
+            """,
+            (result_id,)
+        )
+        self.connection.commit()
+
+
+
     def add_result(
         self,
         source_path,
@@ -227,7 +320,26 @@ class Database:
                 str(destination_path) if destination_path else None
             )
         )
+        return self.connection.execute("SELECT last_insert_rowid()").fetchone()[0]  # Return the last inserted row ID
 
+
+    def update_result(
+        self,
+        result_id,
+        result_status,
+        destination_path=None,
+    ):
+
+        self.connection.execute(
+            """
+            UPDATE results
+            SET result_status = ?,    
+                destination_path = COALESCE(destination_path, ?)
+            WHERE id = ?
+            """,
+            (result_status, destination_path,result_id)
+        )
+        self.connection.commit()
 
 
     def add_results(self, results):
