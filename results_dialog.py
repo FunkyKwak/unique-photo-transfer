@@ -4,24 +4,28 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
+    QHBoxLayout,
     QTableView,
     QPushButton,
-    QHBoxLayout,
-    QLabel
+    QLabel,
+    QSplitter,
+    QTreeWidget,
+    QTreeWidgetItem
 )
 
 from PySide6.QtCore import (
     Qt,
     QAbstractTableModel,
-    QModelIndex,
-    QUrl
+    QModelIndex
 )
 
-from PySide6.QtGui import QDesktopServices
-
-from database import ResultStatus, UserStatus
+from database import ResultStatus
 
 
+
+# ==========================================================
+# Modèle du tableau principal
+# ==========================================================
 
 class ResultsModel(QAbstractTableModel):
 
@@ -31,7 +35,7 @@ class ResultsModel(QAbstractTableModel):
         "Statut",
         "Source",
         "Destination",
-        "Correspondance partielle"
+        "Correspondances partielle"
     ]
 
 
@@ -54,10 +58,20 @@ class ResultsModel(QAbstractTableModel):
             return None
 
         row = self.data_list[index.row()]
+        # Structure attendue :
+        #
+        # (
+        #   id,
+        #   filename,
+        #   result_status,
+        #   source,
+        #   destination,
+        #   partial_matches_count
+        # )
 
         if role == Qt.DisplayRole:
 
-            filename, result_status, source, destination, partial_matches = row
+            result_id, filename, result_status, source, destination, partial_matches = row
 
             if index.column() == 0:
                 return filename
@@ -95,6 +109,104 @@ class ResultsModel(QAbstractTableModel):
             return self.headers[section]
 
 
+    def get_result_id(self, row):
+        return self.data_list[row][0]
+
+
+
+# ==========================================================
+# Widget des détails
+# ==========================================================
+class PartialMatchesWidget(QTreeWidget):
+
+
+    def __init__(self):
+        super().__init__()
+        self.setHeaderLabels(
+            [
+                "Correspondance",
+                "Détails"
+            ]
+        )
+        self.itemDoubleClicked.connect(self.open_item)
+
+
+    def display_matches(self, matches):
+        self.clear()
+
+        if not matches:
+            item = QTreeWidgetItem(
+                [
+                    "Aucune correspondance",
+                    ""
+                ]
+            )
+            self.addTopLevelItem(item)
+            return
+
+
+        for match in matches:
+            #
+            # Structure attendue :
+            #
+            # (
+            # destination_path,
+            # match_filename,
+            # match_size,
+            # match_modified_time,
+            # match_creation_time
+            # )
+            #
+            destination_path = match[0]
+            root = QTreeWidgetItem(
+                [
+                    destination_path,
+                    ""
+                ]
+            )
+            self.addTopLevelItem(root)
+
+            checks = [
+                (
+                    "Nom",
+                    match[1]
+                ),
+                (
+                    "Taille",
+                    match[2]
+                ),
+                (
+                    "Date modification",
+                    match[3]
+                ),
+                (
+                    "Date création",
+                    match[4]
+                )
+            ]
+
+
+            for name, ok in checks:
+                child = QTreeWidgetItem(
+                    [
+                        name,
+                        "✓" if ok else ""
+                    ]
+                )
+                root.addChild(child)
+
+        self.resizeColumnToContents(0)
+        self.resizeColumnToContents(1)
+
+
+
+    def open_item(self, item, column):
+        path = item.text(0)
+        if Path(path).exists():
+            open_and_select_file(path)
+
+
+
 class ResultsDialog(QDialog):
 
 
@@ -105,7 +217,7 @@ class ResultsDialog(QDialog):
         self.status = status
 
         self.setWindowTitle("Résultats")
-        self.resize(1300, 800)
+        self.resize(1300, 900)
         self.create_ui()
 
 
@@ -113,26 +225,72 @@ class ResultsDialog(QDialog):
     def create_ui(self):
         layout = QVBoxLayout()
 
+        # --------------------------------------------------
+        # Informations générales
+        # --------------------------------------------------
         self.info = QLabel()
 
+        # --------------------------------------------------
+        # Tableau principal
+        # --------------------------------------------------
         self.table = QTableView()
         self.table.setSortingEnabled(True)
         self.table.doubleClicked.connect(self.open_path)
+        self.table.setSelectionBehavior(QTableView.SelectRows)
+        self.table.selectionModelChanged = None
 
-        self.refresh()
+        # --------------------------------------------------
+        # Panneau détails
+        # --------------------------------------------------
+        self.details_title = QLabel("Correspondances partielles")
+        self.details = PartialMatchesWidget()
 
+
+        # --------------------------------------------------
+        # Splitter
+        # --------------------------------------------------
+        splitter = QSplitter(Qt.Vertical)
+
+        table_container = QVBoxLayout()
+        table_container.addWidget(self.table)
+
+        details_container = QVBoxLayout()
+        details_container.addWidget(self.details_title)
+        details_container.addWidget(self.details)
+
+        from PySide6.QtWidgets import QWidget
+        table_widget = QWidget()
+        table_widget.setLayout(table_container)
+
+        details_widget = QWidget()
+        details_widget.setLayout(details_container)
+
+        splitter.addWidget(table_widget)
+        splitter.addWidget(details_widget)
+        splitter.setSizes([600,300])
+
+
+        # --------------------------------------------------
+        # Boutons
+        # --------------------------------------------------
         buttons = QHBoxLayout()
         close = QPushButton("Fermer")
         close.clicked.connect(self.close)
         buttons.addStretch()
         buttons.addWidget(close)
 
+
+        # --------------------------------------------------
+        # Assemblage
+        # --------------------------------------------------
         layout.addWidget(self.info)
-        layout.addWidget(self.table)
+        layout.addWidget(splitter)
 
         layout.addLayout(buttons)
 
         self.setLayout(layout)
+
+        self.refresh()
 
 
 
@@ -142,6 +300,27 @@ class ResultsDialog(QDialog):
         self.model = ResultsModel(rows)
         self.table.setModel(self.model)
         self.table.resizeColumnsToContents()
+        #
+        # IMPORTANT :
+        # le selectionModel n'existe qu'après setModel()
+        #
+        self.table.selectionModel().selectionChanged.connect(self.selection_changed)
+
+
+
+    def selection_changed(self, selected, deselected):
+        indexes = self.table.selectionModel().selectedRows()
+
+        if not indexes:
+            self.details.display_matches([])
+            return
+
+        row = indexes[0].row()
+        result_id = self.model.get_result_id(row)
+
+        matches = self.database.get_partial_matches(result_id)
+
+        self.details.display_matches(matches)
 
 
 
@@ -153,15 +332,26 @@ class ResultsDialog(QDialog):
 
         path = None
 
-        if column in (2, 3, 4):
-            path = data[column]
+        if column == 2:
+            path = data[3] # source
+        elif column == 3:
+            path = data[4] # destination
+        elif column == 4:
+            path = data[5] # correspondances
 
         if path:
             open_and_select_file(path)
 
 
 
+
+# ==========================================================
+# Utilitaires
+# ==========================================================
+
 def open_and_select_file(path):
+    if not path:
+        return
     path = str(Path(path).resolve())
     subprocess.Popen(
         [

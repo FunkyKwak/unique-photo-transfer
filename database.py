@@ -393,6 +393,7 @@ class Database:
         cursor.execute(
             """
             SELECT
+                r.id,
                 r.filename,
                 r.result_status,
                 r.source_path,
@@ -409,6 +410,24 @@ class Database:
             {
                 "result_status": result_status
             }
+        )
+        return cursor.fetchall()
+    
+    def get_partial_matches(self, result_id):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                destination_path,
+                match_filename,
+                match_size,
+                match_modified_time,
+                match_creation_time
+            FROM partial_matches
+            WHERE result_id = ?
+            ORDER BY id
+            """,
+            (result_id,)
         )
         return cursor.fetchall()
 
