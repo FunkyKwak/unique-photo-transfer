@@ -1,7 +1,7 @@
 import sqlite3
 from enum import IntEnum
 from pathlib import Path
-import time
+import datetime
 
 
 class ResultStatus(IntEnum):
@@ -13,7 +13,7 @@ class ResultStatus(IntEnum):
 
 class Database:
 
-    def __init__(self, filename=f"session{time.time()}.db"):
+    def __init__(self, filename=f"session_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.db"):
         self.filename = Path(filename)
         self.connection = sqlite3.connect(self.filename)
         self.create_tables()
