@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
 )
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Qt, Signal
 from progress_event import ProgressEvent
 from results_dialog import ResultsDialog
 from database import Database
@@ -42,9 +42,9 @@ class MainWindow(QWidget):
         self.source = QLineEdit()
         self.source.setText(config.DEFAULT_SOURCE)
         self.destination = QLineEdit()
-        self.destination.setText(config.DEFAULT_DESTINATION)
+        self.destination.setText(config.DEFAULT_DESTINATION1)
         self.destination2 = QLineEdit()
-        self.destination2.setText("")
+        self.destination2.setText(config.DEFAULT_DESTINATION2)
         self.copyDestination = QLineEdit()
         self.copyDestination.setText(config.DEFAULT_COPY_DESTINATION)
 
@@ -82,22 +82,43 @@ class MainWindow(QWidget):
         self.start_button = QPushButton("Démarrer")
         self.start_button.clicked.connect(self.start)
 
+        self.progressHeaders = [
+            QLabel("Scan des répertoires de destination"),
+            QLabel("Scan du répertoire d'origine"),
+            QLabel("Copie des fichiers")
+        ]
 
+        row_progressIndexation = QHBoxLayout()
         self.progressIndexation = QProgressBar()
         self.progressIndexationLabel = QLabel()
-        self.progressIndexationLabel.hide()
+        row_progressIndexation.addWidget(self.progressHeaders[0])
+        row_progressIndexation.addWidget(self.progressIndexation)
+        row_progressIndexation.addWidget(self.progressIndexationLabel)
         self.destinationProgressCounters = list()
 
+        row_progress = QHBoxLayout()
         self.progress = QProgressBar()
+        row_progress.addWidget(self.progressHeaders[1])
+        row_progress.addWidget(self.progress)
 
+        row_progressCopy = QHBoxLayout()
         self.progressCopy = QProgressBar()
         self.progressCopyLabel = QLabel()
-        self.progressCopyLabel.hide()
+        row_progressCopy.addWidget(self.progressHeaders[2])
+        row_progressCopy.addWidget(self.progressCopy)
+        row_progressCopy.addWidget(self.progressCopyLabel)
+
+        headerWidth = max(progressHeader.sizeHint().width() for progressHeader in self.progressHeaders)
+        for progressHeader in self.progressHeaders:
+            progressHeader.setFixedWidth(headerWidth)
 
         self.status = QLabel("Prêt")
+        self.status.setAlignment(Qt.AlignCenter)
 
         self.btn_results = QPushButton("Voir les résultats")
         self.btn_results.clicked.connect(self.show_results)
+        self.btn_results.setEnabled(False)
+
 
 
 
@@ -109,11 +130,10 @@ class MainWindow(QWidget):
 
         layout.addWidget(self.start_button)
 
-        layout.addWidget(self.progressIndexation)
-        layout.addWidget(self.progressIndexationLabel)
-        layout.addWidget(self.progress)
-        layout.addWidget(self.progressCopy)
-        layout.addWidget(self.progressCopyLabel)
+        layout.addLayout(row_progressIndexation)
+        layout.addLayout(row_progress)
+        layout.addLayout(row_progressCopy)
+
         layout.addWidget(self.status)
 
         layout.addWidget(self.btn_results)
@@ -180,8 +200,7 @@ class MainWindow(QWidget):
         )
 
         self.progressIndexation.setRange(0, 0)
-        self.progressIndexation.setFormat("Fichiers indexés dans le répertoire de destination : %v")
-        self.progressIndexationLabel.show()
+        self.progressIndexation.setFormat("")
         self.worker.filesDestScanned.connect(
             self.update_indexation
         )
@@ -190,7 +209,7 @@ class MainWindow(QWidget):
         )
 
 
-        self.progress.setFormat("Fichiers scannés dans le répertoire d'origine : %v / %m")
+        self.progress.setFormat("%v / %m")
         self.worker.filesSourceScanned.connect(
             self.progress.setValue
         )
@@ -198,8 +217,7 @@ class MainWindow(QWidget):
             self.progress.setMaximum
         )
 
-        self.progressCopy.setFormat("Fichiers copiés : %v")
-        self.progressCopyLabel.show()
+        self.progressCopy.setFormat("")
         self.worker.filesCopied.connect(
             self.update_copy
         )
@@ -231,12 +249,16 @@ class MainWindow(QWidget):
             self.destinationProgressCounters.append(event)
 
         self.progressIndexationLabel.setText("")
-        for progressEvent in self.destinationProgressCounters:
-            self.progressIndexationLabel.setText(f"{self.progressIndexationLabel.text()}Fichiers indexés dans le répertoire {progressEvent.root_folder}: {progressEvent.current:,}<br>")
-
+        for i, progressEvent in enumerate(self.destinationProgressCounters):
+            if i > 0:
+                self.progressIndexationLabel.setText(f"{self.progressIndexationLabel.text()}<br>")
+            self.progressIndexationLabel.setText(f"{self.progressIndexationLabel.text()}{progressEvent.root_folder} - {progressEvent.current:,}")
+        self.progressIndexationLabel.parentWidget().layout().activate()
+        #self.progressIndexationLabel.adjustSize()
+            
     def update_copy(self, count):
         self.progressCopy.setValue(count)
-        self.progressCopyLabel.setText(f"Fichiers copiés : {count:,}")
+        self.progressCopyLabel.setText(f"{count:,}")
 
 
     def doneIndexation(self):
@@ -244,8 +266,6 @@ class MainWindow(QWidget):
             self.progressIndexation.setRange(0, self.progressIndexation.value())
         else:
             self.progressIndexation.setRange(0, 100)
-        if not self.destination2.text():
-            self.progressIndexationLabel.hide()
         self.progressCopy.setRange(0, 0)
 
     def done(self):
@@ -253,10 +273,9 @@ class MainWindow(QWidget):
             self.progressCopy.setRange(0, self.progressCopy.value())
         else:
             self.progressCopy.setRange(0, 100)
-        self.progressCopyLabel.hide()
 
         self.status.setText("Terminé")
-        self.start_button.setEnabled(True)
+        self.btn_results.setEnabled(True)
 
         self.database.close()
         self.thread.quit()
@@ -265,7 +284,7 @@ class MainWindow(QWidget):
 
     def show_results(self):
         self.database.open()
-        dialog = ResultsDialog(self.database)
+        dialog = ResultsDialog(self.database, [])
         dialog.exec()
 
 

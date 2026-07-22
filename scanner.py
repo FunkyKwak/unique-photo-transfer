@@ -125,10 +125,30 @@ class ScannerWorker(QObject):
         file_paths_to_search_exif.extend([f[3] for f in partial_dest_files])
 
         # Gather EXIF data
+        BATCH_SIZE = 100
         with exiftool.ExifToolHelper(executable="tools/exiftool/exiftool.exe") as et:
-            source_metadata = et.get_metadata([f[3] for f in partial_source_files])
-            dest_metadata = et.get_metadata([f[3] for f in partial_dest_files])
+            source_metadata = []
+            nb_files = len(partial_source_files)
+            self.message.emit(f"Récupération des données EXIF de la source : {nb_files} fichiers")
+            for i in range(0, nb_files, BATCH_SIZE):
+                batch = partial_source_files[i:i + BATCH_SIZE]
+                source_metadata.extend(et.get_metadata([f[3] for f in batch]))
 
+                progress = min(i + len(batch), nb_files)
+                self.message.emit(f"Récupération des données EXIF de la source : {progress} / {nb_files} fichiers")
+    
+            dest_metadata = []
+            nb_files = len(partial_dest_files)
+            self.message.emit(f"Récupération des données EXIF de la destination : {nb_files} fichiers")
+            for i in range(0, nb_files, BATCH_SIZE):
+                batch = partial_dest_files[i:i + BATCH_SIZE]
+                dest_metadata.extend(et.get_metadata([f[3] for f in batch]))
+
+                progress = min(i + len(batch), nb_files)
+                self.message.emit(f"Récupération des données EXIF de la destination : {progress} / {nb_files} fichiers")
+
+
+        self.message.emit(f"Insertion des données EXIF dans la base")
         # UPDATE results table with EXIF data
         source_updates = [
             (
@@ -150,9 +170,11 @@ class ScannerWorker(QObject):
         ])
 
         # Comparison
+        self.message.emit(f"Comparaison des correspondances partielles avec les doonnées EXIF")
         source_files = self.database.get_results([ResultStatus.PARTIAL_MATCH])
         dest_files = self.database.get_partial_matches()
         for source in source_files:
+            self.message.emit(f"Comparaison des correspondances partielles avec les doonnées EXIF : {source[1]}")
             result_id = source[0]
             same_exif_date_found = False
             for dest in (d for d in dest_files if d[1] == result_id):

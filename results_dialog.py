@@ -378,7 +378,12 @@ class ResultsDialog(QDialog):
 
 
     def refresh(self):
-        if len(self.filters.checkboxes) > 0:
+        first_opening = False
+
+        if len(self.filters.checkboxes) == 0:
+            first_opening = True
+        
+        if not first_opening:
             for chk in self.filters.checkboxes.items():
                 next(s for s in self.statuses if s[0] == chk[0])[2] = chk[1].isChecked()
 
@@ -387,7 +392,7 @@ class ResultsDialog(QDialog):
 
         self.info.setText(f"{len(rows)} résultat(s)")
 
-        if len(self.filters.checkboxes) == 0:
+        if first_opening:
             for resultStatus in ResultStatus:
                 countStatus = sum(1 for row in rows if row[2] == resultStatus.value)
                 if countStatus > 0:
@@ -396,7 +401,8 @@ class ResultsDialog(QDialog):
 
         self.model = ResultsModel(rows)
         self.table.setModel(self.model)
-        self.table.resizeColumnsToContents()
+        if first_opening:
+            self.table.resizeColumnsToContents()
         #
         # IMPORTANT :
         # le selectionModel n'existe qu'après setModel()
