@@ -72,27 +72,13 @@ class ResultsModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
 
-            result_id, filename, result_status, source, destination, partial_matches = row
+            result_id, filename, result_status, source, destination, partial_matches, source_size, source_modified_time, source_creation_time, source_exif_DateTimeOriginal = row
 
             if index.column() == 0:
                 return filename
 
             if index.column() == 1:
-
-                if result_status == ResultStatus.COPIED:
-                    return "Copié"
-
-                if result_status == ResultStatus.ALREADY_EXISTS:
-                    return "Déjà présent"
-
-                if result_status == ResultStatus.HASH_PENDING:
-                    return "Hash en attente"
-
-                if result_status == ResultStatus.PARTIAL_MATCH:
-                    return "Correspondance partielle, à vérifier"
-
-                return "Erreur"
-
+                return ResultStatus.description_from_value(result_status)
 
             if index.column() == 2:
                 return source
@@ -352,7 +338,14 @@ class ResultsDialog(QDialog):
 
     def refresh(self):
         rows = self.database.get_results(self.status)
+
+
         self.info.setText(f"{len(rows)} résultat(s)")
+        for r in ResultStatus:
+            countStatus = sum(1 for row in rows if row[2] == r.value)
+            if countStatus > 0:
+                self.info.setText(f"{self.info.text()}\n - {r.description} : {countStatus}")
+
         self.model = ResultsModel(rows)
         self.table.setModel(self.model)
         self.table.resizeColumnsToContents()
@@ -417,6 +410,8 @@ def open_and_select_file(path):
     )
 
 def format_exif_date(exif_date):
+    if not exif_date:
+        return None
     try:
         return datetime.strptime(exif_date, '%Y:%m:%d %H:%M:%S').strftime('%d/%m/%Y %H:%M:%S')
     except ValueError:

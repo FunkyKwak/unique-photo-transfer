@@ -5,18 +5,25 @@ import datetime
 
 
 class ResultStatus(IntEnum):
-    ERROR = -1
-    COPIED = 1
-    ALREADY_EXISTS = 2
-    HASH_PENDING = 3
-    PARTIAL_MATCH = 4
-    USER_CONFIRMED = 5
+    ERROR = (-1, "Erreur")
+    COPIED = (1, "Fichier copié")
+    ALREADY_EXISTS = (2, "Déjà présent")
+    HASH_PENDING = (3, "Hash en attente")
+    PARTIAL_MATCH = (4, "Correspondance partielle, à vérifier")
+    COMPRESSED_SOURCE = (5, "Fichier source identique mais compressé")
 
-class UserStatus(IntEnum):
-    PENDING = 1
-    CONFIRMED_DUPLICATE = 2
-    CONFIRMED_DIFFERENT = 3
+    def __new__(cls, value, description):
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        obj.description = description
+        return obj
 
+    @classmethod
+    def description_from_value(cls, value: int):
+        try:
+            return cls(value).description
+        except ValueError:
+            return "Pas de ResultStatus correspondant"
 
 class Database:
 
@@ -85,7 +92,6 @@ class Database:
                 match_modified_time BOOLEAN NOT NULL CHECK (match_modified_time IN (0, 1)),
                 match_creation_time BOOLEAN NOT NULL CHECK (match_creation_time IN (0, 1)),
                 match_exif_DateTimeOriginal BOOLEAN CHECK (match_exif_DateTimeOriginal IN (0, 1)),
-                user_status INTEGER NOT NULL DEFAULT 1,
                 FOREIGN KEY(result_id) REFERENCES results(id)  
             )
         """)
@@ -418,7 +424,11 @@ class Database:
                 case 
                     WHEN (SELECT COUNT(*) FROM partial_matches p WHERE p.result_id = r.id) = 1 THEN (SELECT destination_path FROM partial_matches p WHERE p.result_id = r.id LIMIT 1)
                     ELSE (SELECT COUNT(*) FROM partial_matches p WHERE p.result_id = r.id)
-                END as partial_matches
+                END as partial_matches,
+                source_size,
+                source_modified_time,
+                source_creation_time,
+                source_exif_DateTimeOriginal
             FROM results r
             {sql_where}
             ORDER BY filename
@@ -448,9 +458,9 @@ class Database:
     
     def get_partial_matches(self, result_id=None):
         cursor = self.connection.cursor()
-        sql_where = ""
+        sql_where = f"WHERE r.result_status = {ResultStatus.PARTIAL_MATCH}"
         if result_id:
-            sql_where = f"AND r.id = {result_id}" 
+            sql_where = f"WHERE r.id = {result_id}" 
         cursor.execute(
             f"""
             SELECT
@@ -469,7 +479,6 @@ class Database:
                 p.match_exif_DateTimeOriginal
             FROM partial_matches p
             INNER JOIN results r on p.result_id = r.id
-            WHERE r.result_status = {ResultStatus.PARTIAL_MATCH}
             {sql_where} 
             ORDER BY p.id
             """

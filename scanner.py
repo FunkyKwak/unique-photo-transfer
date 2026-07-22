@@ -130,35 +130,48 @@ class ScannerWorker(QObject):
             dest_metadata = et.get_metadata([f[3] for f in partial_dest_files])
 
         # UPDATE results table with EXIF data
-        #updates = []
-        #for p in partial_source_files:
-        #    id = p[0]
-        #    exif_date = metadata_by_path[p[3].replace("\\", "/")].get("EXIF:DateTimeOriginal")
-        #    updates.append((exif_date, id))
         source_updates = [
             (
                 meta.get("EXIF:DateTimeOriginal"),
-                partial[0]
+                source_part[0]
             )
-            for partial, meta in zip(partial_source_files, source_metadata)
+            for source_part, meta in zip(partial_source_files, source_metadata)
         ]
         self.database.update_result_exifs(source_updates)
         
         # UPDATE partial_matches table with EXIF data
-        #updates = []
-        #for p in partial_dest_files:
-        #    id = p[0]
-        #    exif_date = metadata_by_path[p[3].replace("\\", "/")].get("EXIF:DateTimeOriginal")
-        #    exif_match = exif_date == next((s for s in partial_source_files if s[0] == p[1]))
-        #    updates.append((exif_date, exif_match, id))
         self.database.update_partial_matches_exifs([
             (
                 meta.get("EXIF:DateTimeOriginal"),
-                meta.get("EXIF:DateTimeOriginal") == next((s[0] for s in source_updates if s[1] == partial[1])),
-                partial[0]
+                meta.get("EXIF:DateTimeOriginal") == next((s[0] for s in source_updates if s[1] == dest_part[1])),
+                dest_part[0]
             )
-            for partial, meta in zip(partial_dest_files, dest_metadata)
+            for dest_part, meta in zip(partial_dest_files, dest_metadata)
         ])
+
+        # Comparison
+        source_files = self.database.get_results(ResultStatus.PARTIAL_MATCH.value)
+        dest_files = self.database.get_partial_matches()
+        for source in source_files:
+            result_id = source[0]
+            same_exif_date_found = False
+            for dest in (d for d in dest_files if d[1] == result_id):
+                source_exif_date = source[9]
+                destination_exif_date = dest[7]
+
+                if not destination_exif_date or not source_exif_date:
+                    pass
+                elif source_exif_date == destination_exif_date:
+                    same_exif_date_found = True
+
+                    source_size = source[6]
+                    destination_size = dest[4]
+                    if source_size < 0.7 * destination_size:
+                        self.database.update_result(result_id, ResultStatus.COMPRESSED_SOURCE)
+
+            # If no corresponding exif found : new file = copy 
+            if not same_exif_date_found:
+                self.copy(filepath, filename, result_id)
 
         self.database.close()
         self.finished.emit()
