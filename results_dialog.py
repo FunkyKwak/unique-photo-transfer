@@ -3,7 +3,9 @@ import subprocess
 from pathlib import Path
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
+    QGroupBox,
     QVBoxLayout,
     QHBoxLayout,
     QTableView,
@@ -11,13 +13,15 @@ from PySide6.QtWidgets import (
     QLabel,
     QSplitter,
     QTreeWidget,
-    QTreeWidgetItem
+    QTreeWidgetItem,
+    QWidget
 )
 
 from PySide6.QtCore import (
     Qt,
     QAbstractTableModel,
-    QModelIndex
+    QModelIndex,
+    Signal
 )
 
 from database import Database, ResultStatus
@@ -244,15 +248,49 @@ class PartialMatchesWidget(QTreeWidget):
             open_and_select_file(path)
 
 
+class StatusFilterWidget(QWidget):
+    filter_changed = Signal(ResultStatus, bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.checkboxes = {}
+
+        group = QGroupBox("Filtrer")
+        self.layout = QHBoxLayout(group)
+
+        main_layout = QHBoxLayout(self)
+        main_layout.addWidget(group)
+
+    def refresh(self, statuses):
+
+        for status, count, checked in statuses:
+
+            checkbox = QCheckBox(
+                f"{status.description} ({count})"
+            )
+
+            checkbox.setChecked(checked)
+
+            checkbox.clicked.connect(
+                lambda checked, s=status: self.on_status_changed(s, checked)
+            )
+
+            self.checkboxes[status.value] = checkbox
+            self.layout.addWidget(checkbox)
+
+    def on_status_changed(self, status, checked):
+        self.filter_changed.emit(status, checked) 
+
 
 class ResultsDialog(QDialog):
 
 
-    def __init__(self, database:Database, status=None):
+    def __init__(self, database:Database, status=[]):
         super().__init__()
 
         self.database = database
-        self.status = status
+        self.statuses = status
 
         self.setWindowTitle("Résultats")
         self.resize(1300, 900)
@@ -267,6 +305,8 @@ class ResultsDialog(QDialog):
         # Informations générales
         # --------------------------------------------------
         self.info = QLabel()
+        self.filters = StatusFilterWidget()
+        self.filters.filter_changed.connect(self.refresh)
 
         # --------------------------------------------------
         # Tableau principal
@@ -300,7 +340,6 @@ class ResultsDialog(QDialog):
         details_table_container.addWidget(self.partial_details)
         details_container.addLayout(details_table_container)
 
-        from PySide6.QtWidgets import QWidget
         table_widget = QWidget()
         table_widget.setLayout(table_container)
 
@@ -326,6 +365,8 @@ class ResultsDialog(QDialog):
         # Assemblage
         # --------------------------------------------------
         layout.addWidget(self.info)
+        layout.addWidget(self.filters)
+
         layout.addWidget(splitter)
 
         layout.addLayout(buttons)
@@ -337,14 +378,21 @@ class ResultsDialog(QDialog):
 
 
     def refresh(self):
-        rows = self.database.get_results(self.status)
+        if len(self.filters.checkboxes) > 0:
+            for chk in self.filters.checkboxes.items():
+                next(s for s in self.statuses if s[0] == chk[0])[2] = chk[1].isChecked()
+
+        rows = self.database.get_results([s[0] for s in self.statuses if s[2]])
 
 
         self.info.setText(f"{len(rows)} résultat(s)")
-        for r in ResultStatus:
-            countStatus = sum(1 for row in rows if row[2] == r.value)
-            if countStatus > 0:
-                self.info.setText(f"{self.info.text()}\n - {r.description} : {countStatus}")
+
+        if len(self.filters.checkboxes) == 0:
+            for resultStatus in ResultStatus:
+                countStatus = sum(1 for row in rows if row[2] == resultStatus.value)
+                if countStatus > 0:
+                    self.statuses.append([resultStatus, countStatus, True])
+            self.filters.refresh(self.statuses)
 
         self.model = ResultsModel(rows)
         self.table.setModel(self.model)

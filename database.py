@@ -406,12 +406,13 @@ class Database:
 
 
 
-    def get_results(self, result_status=None):
+    def get_results(self, result_statuses=[]):
         cursor = self.connection.cursor()
         
         sql_where = ""
-        if result_status:
-            sql_where = f"WHERE result_status = {result_status}"
+        if len(result_statuses) > 0:
+            result_statuses = ",".join(str(r.value) for r in result_statuses)
+            sql_where = f"WHERE result_status in ({result_statuses})"
     
         cursor.execute(
             f"""

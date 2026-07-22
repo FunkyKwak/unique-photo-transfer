@@ -265,10 +265,7 @@ class MainWindow(QWidget):
 
     def show_results(self):
         self.database.open()
-        dialog = ResultsDialog(
-            self.database,
-            None,
-        )
+        dialog = ResultsDialog(self.database)
         dialog.exec()
 
 

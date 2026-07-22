@@ -118,7 +118,7 @@ class ScannerWorker(QObject):
         # ==========================================================
         # STEP 3 : Compare EXIF info on partial matches
         # ==========================================================
-        partial_source_files = self.database.get_results(ResultStatus.PARTIAL_MATCH.value)
+        partial_source_files = self.database.get_results([ResultStatus.PARTIAL_MATCH])
         partial_dest_files = self.database.get_partial_matches()
         file_paths_to_search_exif = []
         file_paths_to_search_exif.extend([f[3] for f in partial_source_files])
@@ -150,7 +150,7 @@ class ScannerWorker(QObject):
         ])
 
         # Comparison
-        source_files = self.database.get_results(ResultStatus.PARTIAL_MATCH.value)
+        source_files = self.database.get_results([ResultStatus.PARTIAL_MATCH])
         dest_files = self.database.get_partial_matches()
         for source in source_files:
             result_id = source[0]
