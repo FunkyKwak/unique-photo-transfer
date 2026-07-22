@@ -226,3 +226,5 @@ __marimo__/
 # CUSTOM
 session_*.db
 session_*.db-journal
+
+tools/exiftool

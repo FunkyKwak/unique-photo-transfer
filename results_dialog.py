@@ -20,7 +20,7 @@ from PySide6.QtCore import (
     QModelIndex
 )
 
-from database import ResultStatus
+from database import Database, ResultStatus
 
 
 
@@ -135,7 +135,7 @@ class SourceDetailsWidget(QTreeWidget):
     def display_details(self, source_details):
         self.clear()
 
-        id, filename, source_path, source_size, source_modified_time, source_creation_time = source_details
+        id, filename, source_path, source_size, source_modified_time, source_creation_time, source_exif_DateTimeOriginal = source_details
         
         root = QTreeWidgetItem(
             [
@@ -161,6 +161,10 @@ class SourceDetailsWidget(QTreeWidget):
         root.addChild(QTreeWidgetItem([
             "Date création",
             datetime.fromtimestamp(source_creation_time).strftime('%d/%m/%Y %H:%M:%S')
+        ]))
+        root.addChild(QTreeWidgetItem([
+            "Date de prise de vue",
+            format_exif_date(source_exif_DateTimeOriginal)
         ]))
 
         self.header().resizeSection(0, 200)
@@ -207,7 +211,10 @@ class PartialMatchesWidget(QTreeWidget):
 
 
         for match in matches:
-            id, filename, destination_path, destination_size, destination_modified_time, destination_creation_time, match_filename, match_size, match_modified_time, match_creation_time = match
+            id, result_id, \
+                filename, destination_path, destination_size, destination_modified_time, destination_creation_time, destination_exif_DateTimeOriginal, \
+                match_filename, match_size, match_modified_time, match_creation_time, match_exif_DateTimeOriginal \
+                = match
             
             root = QTreeWidgetItem(
                 [
@@ -232,7 +239,11 @@ class PartialMatchesWidget(QTreeWidget):
             ]))
             root.addChild(QTreeWidgetItem([
                 "Date création",
-                "✓" if destination_creation_time else datetime.fromtimestamp(destination_creation_time).strftime('%d/%m/%Y %H:%M:%S')
+                "✓" if match_creation_time else datetime.fromtimestamp(destination_creation_time).strftime('%d/%m/%Y %H:%M:%S')
+            ]))
+            root.addChild(QTreeWidgetItem([
+                "Date de prise de vue",
+                "✓" if match_exif_DateTimeOriginal else format_exif_date(destination_exif_DateTimeOriginal)
             ]))
 
         self.header().resizeSection(0, 200)
@@ -251,7 +262,7 @@ class PartialMatchesWidget(QTreeWidget):
 class ResultsDialog(QDialog):
 
 
-    def __init__(self, database, status=None):
+    def __init__(self, database:Database, status=None):
         super().__init__()
 
         self.database = database
@@ -404,3 +415,9 @@ def open_and_select_file(path):
             path
         ]
     )
+
+def format_exif_date(exif_date):
+    try:
+        return datetime.strptime(exif_date, '%Y:%m:%d %H:%M:%S').strftime('%d/%m/%Y %H:%M:%S')
+    except ValueError:
+        return exif_date

@@ -1,3 +1,5 @@
+import sys
+
 from PySide6.QtWidgets import (
     QCheckBox,
     QWidget,
@@ -210,8 +212,10 @@ class MainWindow(QWidget):
             self.done
         )
 
-        # self.worker.run() # si besoin de debugger
-        self.thread.start()
+        if is_debug():
+            self.worker.run()
+        else:
+            self.thread.start()
 
     def update_indexation(self, event: ProgressEvent):
 
@@ -266,3 +270,8 @@ class MainWindow(QWidget):
             None,
         )
         dialog.exec()
+
+
+
+def is_debug():
+    return sys.gettrace() is not None

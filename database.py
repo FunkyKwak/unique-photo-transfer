@@ -37,6 +37,7 @@ class Database:
                 source_size INTEGER,
                 source_modified_time INTEGER,
                 source_creation_time INTEGER,
+                source_exif_DateTimeOriginal TEXT,
                 destination_path TEXT,
                 result_status INTEGER NOT NULL
             )
@@ -63,8 +64,7 @@ class Database:
                 destination_path TEXT NOT NULL,
                 destination_size INTEGER,
                 destination_modified_time INTEGER,
-                destination_creation_time INTEGER,
-                destination_hash TEXT
+                destination_creation_time INTEGER
             )
         """)
         
@@ -78,13 +78,13 @@ class Database:
                 destination_size INTEGER,
                 destination_modified_time INTEGER,
                 destination_creation_time INTEGER,
-                destination_hash TEXT,
+                destination_exif_DateTimeOriginal TEXT,
                 match_score INTEGER NOT NULL,
                 match_filename BOOLEAN NOT NULL CHECK (match_filename IN (0, 1)),
                 match_size BOOLEAN NOT NULL CHECK (match_size IN (0, 1)),
                 match_modified_time BOOLEAN NOT NULL CHECK (match_modified_time IN (0, 1)),
                 match_creation_time BOOLEAN NOT NULL CHECK (match_creation_time IN (0, 1)),
-                match_hash BOOLEAN CHECK (match_hash IN (0, 1)),
+                match_exif_DateTimeOriginal BOOLEAN CHECK (match_exif_DateTimeOriginal IN (0, 1)),
                 user_status INTEGER NOT NULL DEFAULT 1,
                 FOREIGN KEY(result_id) REFERENCES results(id)  
             )
@@ -341,6 +341,23 @@ class Database:
         )
         self.connection.commit()
 
+    def update_result_exifs(
+        self,
+        updates,
+    ):
+        query = """
+            UPDATE results
+            SET source_exif_DateTimeOriginal = ?
+            WHERE id = ?
+        """
+
+        cursor = self.connection.cursor()
+        cursor.executemany(
+            query,
+            updates
+        )
+        self.connection.commit()
+
 
     def add_results(self, results):
 
@@ -388,10 +405,10 @@ class Database:
         
         sql_where = ""
         if result_status:
-            sql_where = "WHERE result_status = %(result_status)s"
+            sql_where = f"WHERE result_status = {result_status}"
     
         cursor.execute(
-            """
+            f"""
             SELECT
                 r.id,
                 r.filename,
@@ -406,10 +423,6 @@ class Database:
             {sql_where}
             ORDER BY filename
             """
-            .format(sql_where=sql_where),
-            {
-                "result_status": result_status
-            }
         )
         return cursor.fetchall()
     
@@ -423,7 +436,8 @@ class Database:
                 source_path,
                 source_size,
                 source_modified_time,
-                source_creation_time
+                source_creation_time,
+                source_exif_DateTimeOriginal
             FROM results
             WHERE id = ?
             ORDER BY id
@@ -432,28 +446,53 @@ class Database:
         )
         return cursor.fetchone()
     
-    def get_partial_matches(self, result_id):
+    def get_partial_matches(self, result_id=None):
         cursor = self.connection.cursor()
+        sql_where = ""
+        if result_id:
+            sql_where = f"AND r.id = {result_id}" 
         cursor.execute(
-            """
+            f"""
             SELECT
-                id,
-                filename,
-                destination_path,
-                destination_size,
-                destination_modified_time,
-                destination_creation_time,
-                match_filename,
-                match_size,
-                match_modified_time,
-                match_creation_time
-            FROM partial_matches
-            WHERE result_id = ?
-            ORDER BY id
-            """,
-            (result_id,)
+                p.id,
+                p.result_id,
+                p.filename,
+                p.destination_path,
+                p.destination_size,
+                p.destination_modified_time,
+                p.destination_creation_time,
+                p.destination_exif_DateTimeOriginal,
+                p.match_filename,
+                p.match_size,
+                p.match_modified_time,
+                p.match_creation_time,
+                p.match_exif_DateTimeOriginal
+            FROM partial_matches p
+            INNER JOIN results r on p.result_id = r.id
+            WHERE r.result_status = {ResultStatus.PARTIAL_MATCH}
+            {sql_where} 
+            ORDER BY p.id
+            """
         )
         return cursor.fetchall()
+
+    def update_partial_matches_exifs(
+        self,
+        updates,
+    ):
+        query = """
+            UPDATE partial_matches
+            SET destination_exif_DateTimeOriginal = ?,
+                match_exif_DateTimeOriginal = ?
+            WHERE id = ?
+        """
+
+        cursor = self.connection.cursor()
+        cursor.executemany(
+            query,
+            updates
+        )
+        self.connection.commit()
 
 
     def open(self):
