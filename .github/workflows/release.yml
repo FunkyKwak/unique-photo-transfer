@@ -31,14 +31,14 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller ^
-            --noconfirm ^
-            --clean ^
-            --windowed ^
-            --icon assets/unique-photo-transfer.ico ^
-            --add-data "assets;assets" ^
-            --onefile ^
-            --name "Unique Photo Transfer ^
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --windowed `
+            --icon assets/unique-photo-transfer.ico `
+            --add-data "assets;assets" `
+            --onefile `
+            --name "Unique Photo Transfer `
             main.py
 
       - name: Create GitHub Release
