@@ -18,6 +18,7 @@ from results_dialog import ResultsDialog
 from database import Database
 import config
 from scanner import ScannerWorker
+from WorkerError import WorkerError
 
 
 class MainWindow(QWidget):
@@ -225,6 +226,9 @@ class MainWindow(QWidget):
         self.worker.message.connect(
             self.status.setText
         )
+        self.worker.error.connect(
+            self.on_error
+        )
 
         self.worker.finished.connect(
             self.done
@@ -267,6 +271,10 @@ class MainWindow(QWidget):
         else:
             self.progressIndexation.setRange(0, 100)
         self.progressCopy.setRange(0, 0)
+
+    def on_error(self, workerError: WorkerError):
+        self.status.setText(str(workerError.exception))
+        print(workerError.traceback)
 
     def done(self):
         if self.progressCopy.value() != 0:

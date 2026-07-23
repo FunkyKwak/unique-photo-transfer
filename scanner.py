@@ -11,6 +11,9 @@ from progress_event import ProgressEvent, ProgressPhase
 
 import exiftool
 import resources
+from WorkerError import WorkerError
+
+
 
 class ScannerWorker(QObject):
 
@@ -21,6 +24,7 @@ class ScannerWorker(QObject):
     filesSourceTotal = Signal(int)
     filesCopied = Signal(int)
 
+    error = Signal(Exception)
     message = Signal(str)
     finished = Signal()
     finishedIndexation = Signal()
@@ -37,9 +41,19 @@ class ScannerWorker(QObject):
         self.keep_structure = keep_structure
         self.db_path = db_path
 
-
-
     def run(self):
+        try:
+            self.do_work()
+        except Exception as e:
+            import traceback
+            self.error.emit(
+                WorkerError(
+                    e,
+                    traceback.format_exc()
+                )
+            )
+
+    def do_work(self):
 
         self.database = Database(self.db_path)
 
@@ -126,7 +140,7 @@ class ScannerWorker(QObject):
 
         # Gather EXIF data
         BATCH_SIZE = 100
-        with exiftool.ExifToolHelper(executable=resources.resource_path("tools/exiftool/exiftool.exe")) as et:
+        with exiftool.ExifToolHelper(executable=resources.resource_path("tools/exiftool/exiftool1.exe")) as et:
             source_metadata = []
             nb_files = len(partial_source_files)
             self.message.emit(f"Récupération des données EXIF de la source : {nb_files} fichiers")
