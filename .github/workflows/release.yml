@@ -46,7 +46,7 @@ jobs:
         run: |
           Expand-Archive `
             -Path tools\exiftool\exiftool.zip `
-            -DestinationPath exiftool
+            -DestinationPath tools\exiftool
 
       - name: Rename ExifTool
         run: |
