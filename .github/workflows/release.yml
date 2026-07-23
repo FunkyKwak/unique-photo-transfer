@@ -29,6 +29,20 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Download ExifTool
+        run: |
+            mkdir tools\exiftool
+
+            Invoke-WebRequest `
+            -Uri "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download" `
+            -OutFile "exiftool.zip"
+
+            Expand-Archive `
+            -Path "exiftool.zip" `
+            -DestinationPath "tools\exiftool"
+
+            copy tools\exiftool\exiftool(-k).exe tools\exiftool\exiftool.exe
+                    
       - name: Build executable
         run: |
           pyinstaller `
@@ -37,6 +51,7 @@ jobs:
             --windowed `
             --icon assets/unique-photo-transfer.ico `
             --add-data "assets;assets" `
+            --add-binary "tools\exiftool\exiftool.exe;tools\exiftool" `
             --onefile `
             --name "Unique_Photo_Transfer" `
             main.py
