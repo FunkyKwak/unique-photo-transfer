@@ -29,26 +29,25 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Create ExifTool directory
-        run: |
-          New-Item `
-            -ItemType Directory `
-            -Force `
-            -Path "tools\exiftool" | Out-Null
-
       - name: Download ExifTool
         run: |
             curl.exe -L `
             "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download" `
-            -o tools\exiftool\exiftool.zip
+            -o tools\exiftool.zip
 
       - name: Extract ExifTool
         run: |
           Expand-Archive `
             -Path tools\exiftool\exiftool.zip `
-            -DestinationPath tools\exiftool
+            -DestinationPath tools
 
-      - name: Rename ExifTool
+      - name: Rename ExifTool folder
+        run: |
+          Copy-Item `
+            "tools\exiftool-13.59_64" `
+            "tools\exiftool"    
+
+      - name: Rename ExifTool exe
         run: |
           Copy-Item `
             "tools\exiftool\exiftool(-k).exe" `
