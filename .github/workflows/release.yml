@@ -43,7 +43,7 @@ jobs:
             -OutFile "tools\exiftool\exiftool.zip"
 
           Expand-Archive `
-            -Path "exiftool.zip" `
+            -Path "tools\exiftool\exiftool.zip" `
             -DestinationPath "tools\exiftool"
 
           Copy-Item `
