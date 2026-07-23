@@ -43,9 +43,9 @@ jobs:
 
       - name: Rename ExifTool folder
         run: |
-          Copy-Item `
+          Rename-Item `
             "tools\exiftool-13.59_64" `
-            "tools\exiftool"    
+            "exiftool"    
 
       - name: Rename ExifTool exe
         run: |
