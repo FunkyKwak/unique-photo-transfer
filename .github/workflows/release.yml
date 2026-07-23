@@ -62,6 +62,7 @@ jobs:
             --icon assets/unique-photo-transfer.ico `
             --add-data "assets;assets" `
             --add-binary "tools\exiftool\exiftool.exe;tools\exiftool" `
+            --add-data "tools\exiftool\exiftool_files;tools\exiftool\exiftool_files" `
             --onefile `
             --name "Unique_Photo_Transfer" `
             main.py
