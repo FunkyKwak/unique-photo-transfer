@@ -140,6 +140,7 @@ class ScannerWorker(QObject):
 
         # Gather EXIF data
         BATCH_SIZE = 100
+        self.message.emit(f"Récupération des données EXIF de la source")
         with exiftool.ExifToolHelper(executable=resources.resource_path("tools/exiftool/exiftool.exe")) as et:
             source_metadata = []
             nb_files = len(partial_source_files)
