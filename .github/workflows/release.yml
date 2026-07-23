@@ -30,19 +30,26 @@ jobs:
           pip install pyinstaller
 
       - name: Download ExifTool
+        shell: powershell
         run: |
-            mkdir tools\exiftool
 
-            Invoke-WebRequest `
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path "tools\exiftool" | Out-Null
+
+          Invoke-WebRequest `
             -Uri "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download" `
-            -OutFile "exiftool.zip"
+            -OutFile "tools\exiftool\exiftool.zip"
 
-            Expand-Archive `
+          Expand-Archive `
             -Path "exiftool.zip" `
             -DestinationPath "tools\exiftool"
 
-            copy tools\exiftool\exiftool(-k).exe tools\exiftool\exiftool.exe
-                    
+          Copy-Item `
+            "exiftool\\exiftool(-k).exe" `
+            "tools\\exiftool\\exiftool.exe"                    
+
       - name: Build executable
         run: |
           pyinstaller `
