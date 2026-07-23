@@ -10,7 +10,7 @@ from database import Database, ResultStatus
 from progress_event import ProgressEvent, ProgressPhase
 
 import exiftool
-import main
+import resources
 
 class ScannerWorker(QObject):
 
@@ -126,7 +126,7 @@ class ScannerWorker(QObject):
 
         # Gather EXIF data
         BATCH_SIZE = 100
-        with exiftool.ExifToolHelper(executable=main.resource_path("tools/exiftool/exiftool.exe")) as et:
+        with exiftool.ExifToolHelper(executable=resources.resource_path("tools/exiftool/exiftool.exe")) as et:
             source_metadata = []
             nb_files = len(partial_source_files)
             self.message.emit(f"Récupération des données EXIF de la source : {nb_files} fichiers")
