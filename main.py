@@ -1,8 +1,17 @@
 import sys
+from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 
 from ui import MainWindow
+
+
+def resource_path(relative_path):
+    current_path = Path(__file__).parent
+    if hasattr(sys, "_MEIPASS"):
+        current_path = Path(sys._MEIPASS)
+
+    return str(current_path / relative_path)
 
 
 def main():

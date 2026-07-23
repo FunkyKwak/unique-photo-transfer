@@ -38,11 +38,11 @@ jobs:
             --icon assets/unique-photo-transfer.ico `
             --add-data "assets;assets" `
             --onefile `
-            --name "Unique Photo Transfer" `
+            --name "Unique_Photo_Transfer" `
             main.py
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "dist/Unique Photo Transfer.exe"
+          artifacts: "dist/Unique_Photo_Transfer.exe"
           generateReleaseNotes: true
