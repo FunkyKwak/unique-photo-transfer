@@ -38,7 +38,7 @@ jobs:
       - name: Extract ExifTool
         run: |
           Expand-Archive `
-            -Path tools\exiftool\exiftool.zip `
+            -Path tools\exiftool.zip `
             -DestinationPath tools
 
       - name: Rename ExifTool folder
