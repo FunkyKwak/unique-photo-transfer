@@ -208,7 +208,7 @@ class ScannerWorker(QObject):
 
             # If no corresponding exif found : new file = copy 
             if not same_exif_date_found:
-                self.copy(filepath, filename, result_id)
+                self.copy(source[3], source[1], result_id)
 
         self.database.close()
         self.finished.emit()
