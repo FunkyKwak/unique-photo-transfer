@@ -1,120 +1,251 @@
-# Unique Photo Transfer
+Unique Photo Transfer is a Windows desktop application designed to **copy photo and video to an existing library** while avoiding duplicates.
 
-![Status](https://img.shields.io/badge/status-in%20development-orange)
+Unlike a traditional copy operation, the application analyzes the destination library before copying and only transfers files that are not already present.
 
-**Unique Photo Transfer** is a lightweight desktop application designed to safely copy photos and videos from one folder to another while avoiding duplicates.
+It has been designed for **very large collections** (hundreds of thousands of files, several terabytes) while keeping disk accesses to a minimum.
 
-The goal is to provide a simple and reliable tool for migrating, consolidating or backing up large photo libraries.
 
-## Features
+# Why this project?
 
-### Duplicate detection
+Copying photos from one backup to another sounds simple...
 
-Unlike a simple copy operation, Unique Photo Transfer identifies already existing files using metadata comparison:
+Until you have:
+- several external hard drives
+- multiple phone backups
+- Google Photos exports
+- NAS migrations
+- renamed folders
+- hundreds of thousands of files
 
-- File name
-- File size
-- Last modification date
+Most copy tools either:
+- blindly overwrite files
+- duplicate everything
+- or compare every file using hashes (which becomes extremely slow on multi-terabyte libraries), ending with a compare result hard to understand, where you don't know what to do if you just want to copy the files not already there 
 
-Files matching these criteria are considered already present and are skipped.
+Unique Photo Transfer follows a different approach:  
+it performs **fast metadata-based detection first**, and only performs expensive operations when necessary.
 
-No file content hashing is performed by default, avoiding unnecessary reads of several terabytes of data.
 
-### Large library support
 
-Designed for large photo collections:
+# Features
 
-- Multiple terabytes of data
-- Thousands of subdirectories
-- Hundreds of thousands of files
-- Single-pass directory indexing for performance
+✅ Recursive scan of source and destination folders
+✅ Support for multiple destination libraries
+✅ Automatic duplicate detection
+✅ Smart handling of uncertain matches
+✅ EXIF metadata comparison
+✅ SHA hashing only when required
+✅ SQLite session database
+✅ Graphical interface (PySide6)
+✅ Detailed execution report
 
-The destination folder is indexed once, then source files are checked against this index.
 
-### Desktop application
 
-The application provides a graphical interface:
+# Detection algorithm
 
-- Select source folder
-- Select destination folder
-- Start / cancel transfer
-- Progress indicator
-- Transfer statistics
-- Error reporting
+The application works in several stages.
+```mermaid
+flowchart TD
 
-No command line required.
+    A[Index destination]
+    B[Scan source files]
+    C{Same<br>name, size, date?}
+    D[Copy file]
+    E([✅ Already exists])
+    F[Read EXIF metadata]
+    G{Same<br>DateTimeOriginal ?}
+    H([📄 Copied])
+    I([⚠️ Partial match<br>To be verified manually])
+    J[Skip]
+    L{Same<br>size ?}
+    M([Compressed source])
 
-## Use cases
+   	A --> C
+   	B --> C
+
+    C -->|Yes| E
+    C -->|No| K{Same<br>name ?}
+    
+    K -->|No| H
+    K -->|Yes| F
+
+    F --> G
+
+    G -->|Yes| L
+    G -->|No| I
+
+   	L -->|Yes| E
+   	L -->|source < 70% destination| M
+   	L -->|source >= 70% destination| I
+   	
+   	H --> D
+    E --> J
+    M --> J
+    I --> J
+   	
+   	style H stroke:#00C853
+   	style E stroke:#D50000
+   	style M stroke:#D50000
+   	style I stroke:#FFD600
+```
+
+
+
+## 1. Destination indexing
+
+The destination folders are scanned only once.
+
+An SQLite index is created containing:
+- filename
+- size
+- timestamps
+- path
+
+This avoids repeatedly scanning the destination.
+
+
+## 2. Source analysis
+
+Each source file is compared against the index.
+
+Possible outcomes:
+
+### Exact match
+The file already exists.
+It is skipped.
+
+### No match
+
+The file is copied.
+
+### Partial match
+
+Some metadata match, but not all.
 
 Examples:
+- same filename but different timestamp
+- same filename but different size
+- timezone differences
+- Google Photos exports
+- iPhone numbering restarting at IMG_0001.JPG
 
-- Merge several photo backups into one library
-- Import photos from external drives
-- Consolidate camera and smartphone folders
-- Prepare a photo archive migration
-- Avoid duplicate files when restoring backups
+These files are marked for deeper analysis.
 
-## How it works
+## 3. EXIF analysis
 
-The application performs the following steps:
+Only partial matches are analyzed using ExifTool.
 
-1. Scan the destination folder recursively.
-2. Build an in-memory index of existing files.
-3. Scan the source folder recursively.
-4. Compare each file against the destination index.
-5. Copy only missing files.
-
-The comparison key is:
-(filename, size, modification date)
+The application compares EXIF:DateTimeOriginal metadata. This resolves most uncertain cases without reading the entire file.
+If one file from the partial matches of the source file has the same DateTimeOriginal, the match is considered exact and the file is noot copied.
 
 
+## 4. Hash verification (to be implemented)
 
-## Performance considerations
+Only the remaining ambiguous files are hashed.
+This provides certainty while avoiding hashing the entire library.
 
-The application is designed to minimize disk access:
 
-- No full file hashing
-- No repeated scans of the destination
-- Metadata-based comparison
-- Sequential directory traversal
+## 5. User checks only the remaining, if any
 
-The bottleneck is expected to be storage performance rather than CPU usage.
+After the 4 steps above, all files that are not already in the destination library for sure have been copied. The other files have been identifieds either already there, or to be anaylized manually.
+Each source file has a status, which can be :
 
-## Installation
+| Status            | Description                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Copied            | No corresponding file in the destination library &rarr; the file has been copied                                                                                                                       |
+| Already exists    | Corresponding file in the destination library &rarr; the file hasn't been copied                                                                                                                       |
+| Compressed source | Corresponding file in the destination library, but with a bigger size &rarr; the file hasn't been copied                                                                                               |
+| Partial match     | There is one or several files that could correspond to the source file in the destination library. Still not sure after the batch analysis &rarr; the file hasn't been copied, requires user verification |
 
-### Download
 
-Download the latest release from the GitHub Releases page:
+
+# Performance
+
+The application is designed to minimise disk I/O.
+
+Instead of hashing every file, it:
+- scans directories once
+- builds an SQLite index
+- compares metadata first
+- hashes only ambiguous files
+
+This makes it suitable for libraries containing several terabytes of data.
+
+
+
+# User interface
+
+The application provides:
+- source folder selection
+- multiple destination folders
+- optional copy destination
+- progress bars
+- detailed statistics
+- result browser
+- partial match inspection
+
+
+
+# Technologies
+
+- Python
+- PySide6
+- SQLite
+- ExifTool
+- GitHub Actions
+- PyInstaller
+
+
+
+# Building manually
+
+Clone the repository:
+
+```
+git clone https://github.com/FunkyKwak/unique-photo-transfer.git
+```
+
+Install dependencies:
+
+```
+pip install -r requirements.txt
+```
+
+Run:
+
+```
+python main.py
+```
+
+---
+
+# Releases - Standalone executable
+
+Standalone Windows executables are automatically generated through GitHub Actions.
+
+No Python installation is required.
+
+Latest release:
+
 https://github.com/FunkyKwak/unique-photo-transfer/releases
 
 
 
+# Roadmap
 
-The application runs as a standalone Windows executable.
-
-Python installation is not required.
-
-### Build from source
-
-Requirements:
-
-- Python 3.12+
-- pip
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
+- [x]  Fast metadata indexing
+- [x]  SQLite session database
+- [x]  Partial match detection
+- [x]  EXIF comparison
+- [ ]  Hash-based verification
+- [ ]  Stop process without crashing 
+- [ ]  Side-by-side comparison window
+- [ ]  Reopen previous analysis
+- [ ]  Configuration file
+- [ ]  Internationalization
 
 
 
- Run the application:
-```bash
-python main.py
-```
+# Contributing
 
-The generated executable will be available in:
-```
-dist/
-```
+Bug reports, ideas and pull requests are welcome.
