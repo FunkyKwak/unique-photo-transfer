@@ -4,6 +4,9 @@ Unlike a traditional copy operation, the application analyzes the destination li
 
 It has been designed for **very large collections** (hundreds of thousands of files, several terabytes) while keeping disk accesses to a minimum.
 
+![Main screenshot](docs/images/main.png)
+![Results screenshot](docs/images/results.png)
+
 
 # Why this project?
 
@@ -72,7 +75,7 @@ flowchart TD
     F --> G
 
     G -->|Yes| L
-    G -->|No| I
+    G -->|No| H
 
    	L -->|Yes| E
    	L -->|source < 70% destination| M
