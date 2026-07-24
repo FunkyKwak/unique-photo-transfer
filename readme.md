@@ -1,3 +1,5 @@
+# Unique Photo Transfer
+
 Unique Photo Transfer is a Windows desktop application designed to **copy photo and video to an existing library** while avoiding duplicates.
 
 Unlike a traditional copy operation, the application analyzes the destination library before copying and only transfers files that are not already present.
@@ -32,14 +34,14 @@ it performs **fast metadata-based detection first**, and only performs expensive
 
 # Features
 
-✅ Recursive scan of source and destination folders
-✅ Support for multiple destination libraries
-✅ Automatic duplicate detection
-✅ Smart handling of uncertain matches
-✅ EXIF metadata comparison
-✅ SHA hashing only when required
-✅ SQLite session database
-✅ Graphical interface (PySide6)
+✅ Recursive scan of source and destination folders  
+✅ Support for multiple destination libraries  
+✅ Automatic duplicate detection  
+✅ Smart handling of uncertain matches  
+✅ EXIF metadata comparison  
+✅ SHA hashing only when required  
+✅ SQLite session database  
+✅ Graphical interface (PySide6)  
 ✅ Detailed execution report
 
 
@@ -50,9 +52,9 @@ The application works in several stages.
 ```mermaid
 flowchart TD
 
-    A[Index destination]
+    A[Index destination files]
     B[Scan source files]
-    C{Same<br>name, size, date?}
+    C{Same<br>name, size, date ?}
     D[Copy file]
     E([✅ Already exists])
     F[Read EXIF metadata]
@@ -82,6 +84,7 @@ flowchart TD
    	L -->|source >= 70% destination| I
    	
    	H --> D
+
     E --> J
     M --> J
     I --> J
@@ -90,6 +93,7 @@ flowchart TD
    	style E stroke:#D50000
    	style M stroke:#D50000
    	style I stroke:#FFD600
+
 ```
 
 
