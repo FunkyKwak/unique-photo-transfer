@@ -65,8 +65,8 @@ flowchart TD
     L{Same<br>size ?}
     M([Compressed source])
 
-   	A --> C
-   	B --> C
+    A --> C
+    B --> C
 
     C -->|Yes| E
     C -->|No| K{Same<br>name ?}
@@ -79,21 +79,20 @@ flowchart TD
     G -->|Yes| L
     G -->|No| H
 
-   	L -->|Yes| E
-   	L -->|source < 70% destination| M
-   	L -->|source >= 70% destination| I
-   	
-   	H --> D
+    L -->|Yes| E
+    L -->|source < 70% destination| M
+    L -->|source >= 70% destination| I
+    
+    H --> D
 
     E --> J
     M --> J
     I --> J
-   	
-   	style H stroke:#00C853
-   	style E stroke:#D50000
-   	style M stroke:#D50000
-   	style I stroke:#FFD600
-
+    
+    style H stroke:#00C853
+    style E stroke:#D50000
+    style M stroke:#D50000
+    style I stroke:#FFD600
 ```
 
 
