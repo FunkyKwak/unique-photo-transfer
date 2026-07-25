@@ -3,9 +3,9 @@ const fs = require("fs");
 
 async function run() {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const readmeContent = fs.readFileSync("README.md", "utf8");
+  const readmeContent = fs.readFileSync("readme.md", "utf8");
 
-  const prompt = `Tu es un traducteur technique expert. Traduis le document Markdown suivant de l'anglais vers le français pour un fichier README.fr.md.
+  const prompt = `Tu es un traducteur technique expert. Traduis le document Markdown suivant de l'anglais vers le français pour un fichier readme.fr.md.
 
 Règles strictes :
 1. Ne traduis PAS les blocs de code (\`\`\`), ni le code en ligne (\`code\`), ni les variables, ni les commandes terminal.
@@ -24,7 +24,7 @@ ${readmeContent}`;
   });
 
   fs.writeFileSync("README.fr.md", response.text);
-  console.log("Traduction terminée avec succès dans README.fr.md !");
+  console.log("Traduction terminée avec succès dans readme.fr.md !");
 }
 
 run().catch((err) => {
