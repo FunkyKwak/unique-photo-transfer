@@ -28,6 +28,7 @@ Règles strictes :
 3. Conserve la syntaxe Markdown à l'identique (titres, listes, tableaux, émojis).
 4. Ne traduis pas les termes techniques consacrés si leur traduction française est inhabituelle pour un développeur (ex: "commit", "push", "pull request", "build", "framework"), ainsi que les termes liés au projet (ex: "Unique Photo Transfer").
 5. Renvoie UNIQUEMENT le contenu Markdown traduit, sans aucun commentaire d'introduction ou de conclusion.
+6. Remplace sans traduire "🇬🇧 **English** | 🇫🇷 [Français](docs/README.fr.md)" par "🇬🇧 [English](../README.md) | 🇫🇷**Français**"
 
 Voici le contenu à traduire :
 
