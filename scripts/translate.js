@@ -1,11 +1,26 @@
-const { GoogleGenAI } = require("@google/genai");
+const OpenAI = require("openai");
 const fs = require("fs");
+const path = require("path");
 
 async function run() {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const readmeContent = fs.readFileSync("readme.md", "utf8");
+  // Initialisation de la bibliothèque OpenAI pointée sur l'API Groq
+  const openai = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1",
+  });
 
-  const prompt = `Tu es un traducteur technique expert. Traduis le document Markdown suivant de l'anglais vers le français pour un fichier readme.fr.md.
+  // Résolution propre des chemins par rapport à la racine du projet
+  const readmePath = path.resolve(__dirname, "../README.md");
+  const readmeFrPath = path.resolve(__dirname, "../README.fr.md");
+
+  if (!fs.existsSync(readmePath)) {
+    console.error(`Fichier introuvable : ${readmePath}`);
+    process.exit(1);
+  }
+
+  const readmeContent = fs.readFileSync(readmePath, "utf8");
+
+  const prompt = `Tu es un traducteur technique expert. Traduis le document Markdown suivant de l'anglais vers le français pour un fichier README.fr.md.
 
 Règles strictes :
 1. Ne traduis PAS les blocs de code (\`\`\`), ni le code en ligne (\`code\`), ni les variables, ni les commandes terminal.
@@ -18,13 +33,16 @@ Voici le contenu à traduire :
 
 ${readmeContent}`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: prompt,
+  const response = await openai.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.3, // Faible température pour une traduction fidèle et constante
   });
 
-  fs.writeFileSync("README.fr.md", response.text);
-  console.log("Traduction terminée avec succès dans readme.fr.md !");
+  fs.writeFileSync(readmeFrPath, response.choices[0].message.content);
+  console.log("Traduction terminée avec succès dans README.fr.md via Groq !");
 }
 
 run().catch((err) => {
