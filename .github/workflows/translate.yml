@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'readme.md'
+      - 'README.md'
   workflow_dispatch:
 
 jobs:
@@ -16,17 +16,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+        uses: actions/setup-node@v5
 
       - name: Install dependencies
         run: npm install openai
 
-      - name: Translate README with Gemini
+      - name: Translate README with GROQ
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: node scripts/translate.js
@@ -35,4 +33,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "docs: update automatic French translation [skip ci]"
-          file_pattern: 'readme.fr.md'
+          file_pattern: 'docs/README.fr.md'
