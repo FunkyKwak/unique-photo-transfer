@@ -24,11 +24,11 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install @google/genai
+        run: npm install openai
 
       - name: Translate README with Gemini
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: node scripts/translate.js
 
       - name: Commit and Push changes
