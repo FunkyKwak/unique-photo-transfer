@@ -6,8 +6,8 @@ Unlike a traditional copy operation, the application analyzes the destination li
 
 It has been designed for **very large collections** (hundreds of thousands of files, several terabytes) while keeping disk accesses to a minimum.
 
-![Main screenshot](docs/images/main.png)
-![Results screenshot](docs/images/results.png)
+![Main screenshot](/docs/images/main.png)
+![Results screenshot](/docs/images/results.png)
 
 
 # Why this project?
