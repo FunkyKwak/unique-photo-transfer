@@ -1,3 +1,5 @@
+🇬🇧 **English** | 🇫🇷 [Français](docs/README.fr.md)
+
 # Unique Photo Transfer
 
 Unique Photo Transfer is a Windows desktop application designed to **copy photo and video to an existing library** while avoiding duplicates.
