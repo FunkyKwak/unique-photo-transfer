@@ -1,10 +1,12 @@
+🇬🇧 [English](../README.md) | 🇫🇷**Français**
+
 # Unique Photo Transfer
 
-Unique Photo Transfer est une application de bureau Windows conçue pour **copier les photos et les vidéos vers une bibliothèque existante** tout en évitant les doublons.
+Unique Photo Transfer est une application de bureau Windows conçue pour **copier des photos et des vidéos dans une bibliothèque existante** tout en évitant les doublons.
 
-Contrairement à une opération de copie traditionnelle, l'application analyse la bibliothèque de destination avant de copier et ne transfère que les fichiers qui ne sont pas déjà présents.
+Contrairement à une opération de copie traditionnelle, l'application analyse la bibliothèque de destination avant de copier et ne transfère que les fichiers qui n'y sont pas déjà présents.
 
-Elle a été conçue pour **de très grandes collections** (des centaines de milliers de fichiers, plusieurs téraoctets) tout en minimisant les accès disque.
+Elle a été conçue pour des **collections très grandes** (des centaines de milliers de fichiers, plusieurs téraoctets) tout en minimisant les accès disque.
 
 ![Capture d'écran principale](/docs/images/main.png)
 ![Capture d'écran des résultats](/docs/images/results.png)
@@ -17,18 +19,18 @@ Copier des photos d'une sauvegarde à une autre semble simple...
 Jusqu'à ce que vous ayez :
 - plusieurs disques durs externes
 - plusieurs sauvegardes de téléphone
-- des exportations Google Photos
-- des migrations NAS
+- des exportations de Google Photos
+- des migrations de NAS
 - des dossiers renommés
 - des centaines de milliers de fichiers
 
 La plupart des outils de copie soit :
-- écrasent les fichiers aveuglément
+- écrasent les fichiers sans prévenir
 - dupliquent tout
-- ou comparent chaque fichier à l'aide de hachages (ce qui devient extrêmement lent sur des bibliothèques de plusieurs téraoctets), aboutissant à un résultat de comparaison difficile à comprendre, où vous ne savez pas quoi faire si vous voulez simplement copier les fichiers qui n'y sont pas déjà 
+- ou comparent chaque fichier en utilisant des hachages (ce qui devient extrêmement lent sur des bibliothèques de plusieurs téraoctets), aboutissant à un résultat de comparaison difficile à comprendre, où vous ne savez pas quoi faire si vous voulez simplement copier les fichiers qui n'y sont pas déjà 
 
-Unique Photo Transfer suit une approche différente :  
-elle effectue d'abord une **détection rapide basée sur les métadonnées**, et ne effectue les opérations coûteuses que lorsque cela est nécessaire.
+Unique Photo Transfer suit une approche différente : 
+elle effectue d'abord une **détection rapide basée sur les métadonnées**, et ne effectue des opérations coûteuses que lorsque cela est nécessaire.
 
 
 
@@ -39,7 +41,7 @@ elle effectue d'abord une **détection rapide basée sur les métadonnées**, et
 ✅ Détection automatique des doublons  
 ✅ Gestion intelligente des correspondances incertaines  
 ✅ Comparaison des métadonnées EXIF  
-✅ Hachage SHA uniquement lorsqu'il est requis  
+✅ Hachage SHA uniquement lorsque requis  
 ✅ Base de données de session SQLite  
 ✅ Interface graphique (PySide6)  
 ✅ Rapport d'exécution détaillé
@@ -63,7 +65,7 @@ flowchart TD
     I([⚠️ Correspondance partielle<br>À vérifier manuellement])
     J[Ignorer]
     L{Même<br>taille ?}
-    M([Source compressé])
+    M([Fichier source compressé])
 
     A --> C
     B --> C
@@ -107,7 +109,7 @@ Un index SQLite est créé contenant :
 - les horodatages
 - le chemin
 
-Cela évite d'analyser à plusieurs reprises la destination.
+Cela évite d'analyser à nouveau les dossiers de destination.
 
 
 ## 2. Analyse de la source
@@ -132,8 +134,8 @@ Exemples :
 - même nom de fichier mais horodatage différent
 - même nom de fichier mais taille différente
 - différences de fuseau horaire
-- exportations Google Photos
-- renumérotation iPhone à partir de IMG_0001.JPG
+- exportations de Google Photos
+- renumérotation d'iPhone à partir de IMG_0001.JPG
 
 Ces fichiers sont marqués pour une analyse plus approfondie.
 
@@ -142,10 +144,10 @@ Ces fichiers sont marqués pour une analyse plus approfondie.
 Seules les correspondances partielles sont analysées à l'aide d'ExifTool.
 
 L'application compare les métadonnées EXIF : DateTimeOriginal. Cela résout la plupart des cas incertains sans lire l'ensemble du fichier.
-Si un fichier des correspondances partielles du fichier source a le même DateTimeOriginal, la correspondance est considérée comme exacte et le fichier n'est pas copié.
+Si l'un des fichiers des correspondances partielles du fichier source a le même DateTimeOriginal, la correspondance est considérée comme exacte et le fichier n'est pas copié.
 
 
-## 4. Vérification du hachage (à implémenter)
+## 4. Vérification par hachage (à implémenter)
 
 Seuls les fichiers ambigus restants sont hachés.
 Cela fournit une certitude tout en évitant de hacher l'ensemble de la bibliothèque.
@@ -153,14 +155,14 @@ Cela fournit une certitude tout en évitant de hacher l'ensemble de la biblioth�
 
 ## 5. Vérification utilisateur des fichiers restants, si nécessaire
 
-Après les 4 étapes ci-dessus, tous les fichiers qui ne sont pas déjà dans la bibliothèque de destination ont été copiés. Les autres fichiers ont été identifiés comme étant déjà présents, ou à analyser manuellement.
+Après les 4 étapes ci-dessus, tous les fichiers qui ne sont pas déjà dans la bibliothèque de destination avec certitude ont été copiés. Les autres fichiers ont été identifiés comme étant déjà présents ou à analyser manuellement.
 Chaque fichier source a un statut, qui peut être :
 
 | Statut            | Description                                                                                                                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Copié            | Aucun fichier correspondant dans la bibliothèque de destination &rarr; le fichier a été copié                                                                                                                       |
-| Fichier déjà existant    | Fichier correspondant dans la bibliothèque de destination &rarr; le fichier n'a pas été copié                                                                                                                       |
-| Source compressée | Fichier correspondant dans la bibliothèque de destination, mais avec une taille plus grande &rarr; le fichier n'a pas été copié                                                                                               |
+| Déjà existant    | Fichier correspondant dans la bibliothèque de destination &rarr; le fichier n'a pas été copié                                                                                                                       |
+| Fichier source compressé | Fichier correspondant dans la bibliothèque de destination, mais avec une taille plus grande &rarr; le fichier n'a pas été copié                                                                                               |
 | Correspondance partielle     | Il y a un ou plusieurs fichiers qui pourraient correspondre au fichier source dans la bibliothèque de destination. Toujours incertain après l'analyse par lots &rarr; le fichier n'a pas été copié, nécessite une vérification manuelle |
 
 
@@ -185,9 +187,9 @@ L'application fournit :
 - la sélection du dossier source
 - plusieurs dossiers de destination
 - la copie de destination facultative
-- des barres de progression
-- des statistiques détaillées
-- un navigateur de résultats
+- les barres de progression
+- les statistiques détaillées
+- le navigateur de résultats
 - l'inspection des correspondances partielles
 
 
@@ -243,7 +245,7 @@ https://github.com/FunkyKwak/unique-photo-transfer/releases
 - [x]  Base de données de session SQLite
 - [x]  Détection de correspondance partielle
 - [x]  Comparaison EXIF
-- [ ]  Vérification basée sur le hachage
+- [ ]  Vérification basée sur les hachages
 - [ ]  Arrêt du processus sans crash 
 - [ ]  Fenêtre de comparaison côte à côte
 - [ ]  Réouverture de l'analyse précédente
