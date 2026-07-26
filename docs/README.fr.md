@@ -1,0 +1,257 @@
+# Transfert de photos unique
+
+Unique Photo Transfer est une application de bureau Windows conçue pour **copier des photos et des vidéos dans une bibliothèque existante** tout en évitant les doublons.
+
+Contrairement à une opération de copie traditionnelle, l'application analyse la bibliothèque de destination avant de copier et ne transfère que les fichiers qui ne sont pas déjà présents.
+
+Elle a été conçue pour **des collections très grandes** (des centaines de milliers de fichiers, plusieurs téraoctets) tout en minimisant les accès disque.
+
+![Capture d'écran principale](docs/images/main.png)
+![Capture d'écran des résultats](docs/images/results.png)
+
+
+# Pourquoi ce projet ?
+
+Copier des photos d'une sauvegarde à une autre semble simple...
+
+Jusqu'à ce que vous ayez :
+- plusieurs disques durs externes
+- plusieurs sauvegardes de téléphone
+- des exportations Google Photos
+- des migrations NAS
+- des dossiers renommés
+- des centaines de milliers de fichiers
+
+La plupart des outils de copie soit :
+- écrasent les fichiers aveuglément
+- dupliquent tout
+- ou comparent chaque fichier en utilisant des hachages (ce qui devient extrêmement lent sur des bibliothèques de plusieurs téraoctets), aboutissant à un résultat de comparaison difficile à comprendre, où vous ne savez pas quoi faire si vous voulez simplement copier les fichiers qui n'y sont pas déjà 
+
+Unique Photo Transfer suit une approche différente : 
+elle effectue d'abord une **détection basée sur les métadonnées rapide**, et ne effectue les opérations coûteuses que lorsque nécessaire.
+
+
+
+# Fonctionnalités
+
+✅ Analyse récursive des dossiers source et de destination  
+✅ Prise en charge de plusieurs bibliothèques de destination  
+✅ Détection automatique des doublons  
+✅ Gestion intelligente des correspondances incertaines  
+✅ Comparaison des métadonnées EXIF  
+✅ Hachage SHA uniquement lorsque requis  
+✅ Base de données de session SQLite  
+✅ Interface graphique (PySide6)  
+✅ Rapport d'exécution détaillé
+
+
+
+# Algorithme de détection
+
+L'application fonctionne en plusieurs étapes.
+```mermaid
+flowchart TD
+
+    A[Index destination files]
+    B[Scan source files]
+    C{Same<br>name, size, date ?}
+    D[Copy file]
+    E([✅ Already exists])
+    F[Read EXIF metadata]
+    G{Same<br>DateTimeOriginal ?}
+    H([📄 Copied])
+    I([⚠️ Partial match<br>To be verified manually])
+    J[Skip]
+    L{Same<br>size ?}
+    M([Compressed source])
+
+    A --> C
+    B --> C
+
+    C -->|Yes| E
+    C -->|No| K{Same<br>name ?}
+    
+    K -->|No| H
+    K -->|Yes| F
+
+    F --> G
+
+    G -->|Yes| L
+    G -->|No| H
+
+    L -->|Yes| E
+    L -->|source < 70% destination| M
+    L -->|source >= 70% destination| I
+    
+    H --> D
+
+    E --> J
+    M --> J
+    I --> J
+    
+    style H stroke:#00C853
+    style E stroke:#D50000
+    style M stroke:#D50000
+    style I stroke:#FFD600
+```
+
+
+
+## 1. Indexation de la destination
+
+Les dossiers de destination sont analysés une seule fois.
+
+Un index SQLite est créé contenant :
+- le nom de fichier
+- la taille
+- les horodatages
+- le chemin
+
+Cela évite d'analyser à plusieurs reprises la destination.
+
+
+## 2. Analyse de la source
+
+Chaque fichier source est comparé à l'index.
+
+Résultats possibles :
+
+### Correspondance exacte
+Le fichier existe déjà.
+Il est ignoré.
+
+### Aucune correspondance
+
+Le fichier est copié.
+
+### Correspondance partielle
+
+Certaines métadonnées correspondent, mais pas toutes.
+
+Exemples :
+- même nom de fichier mais horodatage différent
+- même nom de fichier mais taille différente
+- différences de fuseau horaire
+- exportations Google Photos
+- renumérotation iPhone à partir de IMG_0001.JPG
+
+Ces fichiers sont marqués pour une analyse plus approfondie.
+
+## 3. Analyse EXIF
+
+Seules les correspondances partielles sont analysées à l'aide d'ExifTool.
+
+L'application compare les métadonnées EXIF : DateTimeOriginal. Cela résout la plupart des cas incertains sans lire l'ensemble du fichier.
+Si un fichier des correspondances partielles du fichier source a le même DateTimeOriginal, la correspondance est considérée comme exacte et le fichier n'est pas copié.
+
+
+## 4. Vérification par hachage (à implémenter)
+
+Seuls les fichiers ambigus restants sont hachés.
+Cela fournit une certitude tout en évitant de hacher l'ensemble de la bibliothèque.
+
+
+## 5. Vérification utilisateur des fichiers restants, si nécessaire
+
+Après les 4 étapes ci-dessus, tous les fichiers qui ne sont pas déjà dans la bibliothèque de destination avec certitude ont été copiés. Les autres fichiers ont été identifiés comme étant déjà présents, ou à analyser manuellement.
+Chaque fichier source a un statut, qui peut être :
+
+| Statut            | Description                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Copié            | Aucun fichier correspondant dans la bibliothèque de destination &rarr; le fichier a été copié                                                                                                                       |
+| Existe déjà    | Fichier correspondant dans la bibliothèque de destination &rarr; le fichier n'a pas été copié                                                                                                                       |
+| Source compressée | Fichier correspondant dans la bibliothèque de destination, mais avec une taille plus grande &rarr; le fichier n'a pas été copié                                                                                               |
+| Correspondance partielle     | Il existe un ou plusieurs fichiers qui pourraient correspondre au fichier source dans la bibliothèque de destination. Toujours incertain après l'analyse par lots &rarr; le fichier n'a pas été copié, nécessite une vérification manuelle |
+
+
+
+# Performances
+
+L'application est conçue pour minimiser les accès disque.
+
+Au lieu de hacher chaque fichier, elle :
+- analyse les répertoires une seule fois
+- crée un index SQLite
+- compare les métadonnées en premier
+- hache uniquement les fichiers ambigus
+
+Cela la rend adaptée aux bibliothèques contenant plusieurs téraoctets de données.
+
+
+
+# Interface utilisateur
+
+L'application fournit :
+- la sélection du dossier source
+- plusieurs dossiers de destination
+- la copie de destination facultative
+- des barres de progression
+- des statistiques détaillées
+- un navigateur de résultats
+- une inspection des correspondances partielles
+
+
+
+# Technologies
+
+- Python
+- PySide6
+- SQLite
+- ExifTool
+- GitHub Actions
+- PyInstaller
+
+
+
+# Construction manuelle
+
+Cloner le référentiel :
+
+```
+git clone https://github.com/FunkyKwak/unique-photo-transfer.git
+```
+
+Installer les dépendances :
+
+```
+pip install -r requirements.txt
+```
+
+Exécuter :
+
+```
+python main.py
+```
+
+---
+
+# Versions - Exécutable autonome
+
+Les exécutables Windows autonomes sont générés automatiquement via GitHub Actions.
+
+Aucune installation de Python n'est requise.
+
+Dernière version :
+
+https://github.com/FunkyKwak/unique-photo-transfer/releases
+
+
+
+# Feuille de route
+
+- [x]  Indexation rapide des métadonnées
+- [x]  Base de données de session SQLite
+- [x]  Détection de correspondance partielle
+- [x]  Comparaison EXIF
+- [ ]  Vérification basée sur les hachages
+- [ ]  Arrêt du processus sans crash 
+- [ ]  Fenêtre de comparaison côte à côte
+- [ ]  Réouverture de l'analyse précédente
+- [ ]  Fichier de configuration
+- [ ]  Internationalisation
+
+
+
+# Contribution
+
+Les rapports de bogues, les idées et les demandes de tirage sont les bienvenus.
