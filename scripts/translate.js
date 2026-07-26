@@ -11,7 +11,7 @@ async function run() {
 
   // Résolution propre des chemins par rapport à la racine du projet
   const readmePath = path.resolve(__dirname, "../README.md");
-  const readmeFrPath = path.resolve(__dirname, "../README.fr.md");
+  const readmeFrPath = path.resolve(__dirname, "../docs/README.fr.md");
 
   if (!fs.existsSync(readmePath)) {
     console.error(`Fichier introuvable : ${readmePath}`);
