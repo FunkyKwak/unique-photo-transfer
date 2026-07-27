@@ -2,11 +2,13 @@
 
 # Unique Photo Transfer
 
+![Schema](/docs/images/schema.png)
+
 Unique Photo Transfer est une application de bureau Windows conçue pour **copier des photos et des vidéos vers une bibliothèque existante** tout en évitant les doublons.
 
 Contrairement à une opération de copie traditionnelle, l'application analyse la bibliothèque de destination avant de copier et ne transfère que les fichiers qui ne sont pas déjà présents.
 
-Elle a été conçue pour **des collections très grandes** (des centaines de milliers de fichiers, plusieurs téraoctets) tout en minimisant les accès disque.
+Elle a été conçue pour gérer **des collections très grandes** (des centaines de milliers de fichiers, plusieurs téraoctets) tout en minimisant les accès disque.
 
 ![Capture d'écran principale](/docs/images/main.png)
 ![Capture d'écran des résultats](/docs/images/results.png)
@@ -19,18 +21,18 @@ Copier des photos d'une sauvegarde à une autre semble simple...
 Jusqu'à ce que vous ayez :
 - plusieurs disques durs externes
 - plusieurs sauvegardes de téléphone
-- des exportations de Google Photos
-- des migrations de NAS
+- des exportations Google Photos
+- des migrations NAS
 - des dossiers renommés
 - des centaines de milliers de fichiers
 
 La plupart des outils de copie soit :
-- écrasent les fichiers sans précaution
+- écrasent les fichiers sans prévenir
 - dupliquent tout
-- ou comparent chaque fichier en utilisant des hachages (ce qui devient extrêmement lent sur des bibliothèques de plusieurs téraoctets), aboutissant à un résultat de comparaison difficile à comprendre, où vous ne savez pas quoi faire si vous voulez simplement copier les fichiers qui ne sont pas déjà là 
+- ou comparent chaque fichier en utilisant des hachages (ce qui devient extrêmement lent sur des bibliothèques de plusieurs téraoctets), aboutissant à un résultat de comparaison difficile à comprendre, où vous ne savez pas quoi faire si vous voulez simplement copier les fichiers qui n'y sont pas déjà 
 
 Unique Photo Transfer suit une approche différente :  
-elle effectue d'abord une **détection rapide basée sur les métadonnées**, et ne effectue les opérations coûteuses que lorsque cela est nécessaire.
+elle effectue d'abord une **détection rapide basée sur les métadonnées**, et ne réalise les opérations coûteuses que lorsque cela est nécessaire.
 
 
 
@@ -58,14 +60,14 @@ flowchart TD
     B[Analyse des fichiers source]
     C{Même<br>nom, taille, date ?}
     D[Copie du fichier]
-    E([✅ Fichier déjà existant])
+    E([✅ Fichier déjà présent])
     F[Lecture des métadonnées EXIF]
     G{Même<br>DateTimeOriginal ?}
     H([📄 Fichier copié])
     I([⚠️ Correspondance partielle<br>À vérifier manuellement])
     J[Ignorer]
     L{Même<br>taille ?}
-    M([🗜️ Source compressée])
+    M([🗜️ Fichier source compressé])
 
     A --> C
     B --> C
@@ -134,8 +136,8 @@ Exemples :
 - même nom de fichier mais horodatage différent
 - même nom de fichier mais taille différente
 - différences de fuseau horaire
-- exportations de Google Photos
-- renumérotation d'iPhone repartant à IMG_0001.JPG
+- exportations Google Photos
+- renumérotation iPhone à partir de IMG_0001.JPG
 
 Ces fichiers sont marqués pour une analyse plus approfondie.
 
@@ -144,7 +146,7 @@ Ces fichiers sont marqués pour une analyse plus approfondie.
 Seules les correspondances partielles sont analysées à l'aide d'ExifTool.
 
 L'application compare les métadonnées EXIF : DateTimeOriginal. Cela résout la plupart des cas incertains sans lire l'ensemble du fichier.
-Si un fichier des correspondances partielles du fichier source a le même DateTimeOriginal, la correspondance est considérée comme exacte et le fichier n'est pas copié.
+Si l'un des fichiers des correspondances partielles du fichier source a le même DateTimeOriginal, la correspondance est considérée comme exacte et le fichier n'est pas copié.
 
 
 ## 4. Vérification par hachage (à implémenter)
@@ -161,9 +163,9 @@ Chaque fichier source a un statut, qui peut être :
 | Statut                | Description                                                                                                                                                                                               |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 📄 Copié            | Aucun fichier correspondant dans la bibliothèque de destination &rarr; le fichier a été copié                                                                                                                          |
-| 🗜️ Source compressée | Fichier correspondant dans la bibliothèque de destination, mais avec une taille plus grande &rarr; le fichier n'a pas été copié                                                                                                  |
-| ✅ Fichier déjà existant    | Fichier correspondant dans la bibliothèque de destination &rarr; le fichier n'a pas été copié                                                                                                                          |
-| ⚠️ Correspondance partielle     | Il existe un ou plusieurs fichiers qui pourraient correspondre au fichier source dans la bibliothèque de destination. Toujours incertain après l'analyse par lots &rarr; le fichier n'a pas été copié, nécessite une vérification manuelle |
+| 🗜️ Fichier source compressé | Fichier correspondant dans la bibliothèque de destination, mais avec une taille plus grande &rarr; le fichier n'a pas été copié                                                                                                  |
+| ✅ Fichier déjà présent    | Fichier correspondant dans la bibliothèque de destination &rarr; le fichier n'a pas été copié                                                                                                                          |
+| ⚠️ Correspondance partielle     | Il y a un ou plusieurs fichiers qui pourraient correspondre au fichier source dans la bibliothèque de destination. Toujours incertain après l'analyse par lots &rarr; le fichier n'a pas été copié, nécessite une vérification manuelle |
 
 
 
@@ -207,19 +209,19 @@ L'application fournit :
 
 # Construction manuelle
 
-Cloner le référentiel :
+Clonez le référentiel :
 
 ```
 git clone https://github.com/FunkyKwak/unique-photo-transfer.git
 ```
 
-Installer les dépendances :
+Installez les dépendances :
 
 ```
 pip install -r requirements.txt
 ```
 
-Exécuter :
+Exécutez :
 
 ```
 python main.py
