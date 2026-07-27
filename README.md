@@ -65,7 +65,7 @@ flowchart TD
     I([⚠️ Partial match<br>To be verified manually])
     J[Skip]
     L{Same<br>size ?}
-    M([Compressed source])
+    M([🗜️ Compressed source])
 
     A --> C
     B --> C
@@ -158,12 +158,12 @@ This provides certainty while avoiding hashing the entire library.
 After the 4 steps above, all files that are not already in the destination library for sure have been copied. The other files have been identifieds either already there, or to be anaylized manually.
 Each source file has a status, which can be :
 
-| Status            | Description                                                                                                                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Copied            | No corresponding file in the destination library &rarr; the file has been copied                                                                                                                       |
-| Already exists    | Corresponding file in the destination library &rarr; the file hasn't been copied                                                                                                                       |
-| Compressed source | Corresponding file in the destination library, but with a bigger size &rarr; the file hasn't been copied                                                                                               |
-| Partial match     | There is one or several files that could correspond to the source file in the destination library. Still not sure after the batch analysis &rarr; the file hasn't been copied, requires user verification |
+| Status                | Description                                                                                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📄 Copied            | No corresponding file in the destination library &rarr; the file has been copied                                                                                                                          |
+| 🗜️ Compressed source | Corresponding file in the destination library, but with a bigger size &rarr; the file hasn't been copied                                                                                                  |
+| ✅ Already exists    | Corresponding file in the destination library &rarr; the file hasn't been copied                                                                                                                          |
+| ⚠️ Partial match     | There is one or several files that could correspond to the source file in the destination library. Still not sure after the batch analysis &rarr; the file hasn't been copied, requires user verification |
 
 
 
