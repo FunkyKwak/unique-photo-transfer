@@ -2,6 +2,8 @@
 
 # Unique Photo Transfer
 
+![Schema](/docs/images/schema.png)
+
 Unique Photo Transfer is a Windows desktop application designed to **copy photo and video to an existing library** while avoiding duplicates.
 
 Unlike a traditional copy operation, the application analyzes the destination library before copying and only transfers files that are not already present.
